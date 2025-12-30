@@ -46,44 +46,14 @@
     "longDescription": "GNS Browser is your gateway to the decentralized identity web. Claim your @handle, send encrypted messages, and prove your humanity through proof-of-trajectory.",
     "copyright": "© 2024 Globe Crumbs",
     "iOS": {
-      "minimumSystemVersion": "13.0",
-      "developmentTeam": "YOUR_TEAM_ID",
-      "frameworks": [],
-      "infoPlist": {
-        "CFBundleURLTypes": [
-          {
-            "CFBundleURLName": "GNS Protocol",
-            "CFBundleURLSchemes": ["gns"]
-          }
-        ],
-        "NSLocationWhenInUseUsageDescription": "GNS Browser collects your location to create cryptographic breadcrumbs that prove your identity.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "GNS Browser collects your location in the background to build your proof-of-trajectory for handle claims.",
-        "UIBackgroundModes": ["location"]
-      }
+      "minimumSystemVersion": "13.0"
     },
     "android": {
-      "minSdkVersion": 26,
-      "targetSdkVersion": 34,
-      "permissions": [
-        "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION",
-        "ACCESS_BACKGROUND_LOCATION",
-        "INTERNET",
-        "FOREGROUND_SERVICE"
-      ],
-      "intentFilters": [
-        {
-          "action": "android.intent.action.VIEW",
-          "categories": ["android.intent.category.BROWSABLE", "android.intent.category.DEFAULT"],
-          "data": {
-            "scheme": "gns"
-          }
-        }
-      ]
+      "minSdkVersion": 26
     },
     "macOS": {
       "minimumSystemVersion": "10.15",
-      "entitlements": "./entitlements.plist",
+      "entitlements": null,
       "exceptionDomain": null
     },
     "windows": {
