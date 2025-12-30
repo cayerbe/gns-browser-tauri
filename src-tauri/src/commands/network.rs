@@ -2,14 +2,14 @@
 //!
 //! Commands for managing network connectivity.
 
-use tauri::State;
 use crate::AppState;
+use tauri::State;
 
 /// Get current connection status
 #[tauri::command]
 pub async fn get_connection_status(state: State<'_, AppState>) -> Result<ConnectionStatus, String> {
     let relay = state.relay.lock().await;
-    
+
     Ok(ConnectionStatus {
         relay_connected: relay.is_connected(),
         relay_url: relay.url().to_string(),

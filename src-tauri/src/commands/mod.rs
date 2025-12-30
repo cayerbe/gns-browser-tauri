@@ -9,9 +9,9 @@
 //! - network: Connection management
 //! - utils: Miscellaneous utilities
 
+pub mod breadcrumbs;
+pub mod handles;
 pub mod identity;
 pub mod messaging;
-pub mod handles;
-pub mod breadcrumbs;
 pub mod network;
 pub mod utils;

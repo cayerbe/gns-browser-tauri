@@ -2,9 +2,9 @@
 //!
 //! Handles all network communication with the GNS backend.
 
+use gns_crypto_core::{Breadcrumb, GnsEnvelope};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use gns_crypto_core::{GnsEnvelope, Breadcrumb};
 
 // ==================== API Client ====================
 
@@ -21,71 +21,85 @@ impl ApiClient {
             .timeout(std::time::Duration::from_secs(30))
             .build()
             .map_err(|e| NetworkError::ClientError(e.to_string()))?;
-        
+
         Ok(Self {
             client,
             base_url: base_url.to_string(),
         })
     }
-    
+
     /// Resolve a handle to identity info
     pub async fn resolve_handle(&self, handle: &str) -> Result<Option<IdentityInfo>, NetworkError> {
         let url = format!("{}/handles/{}", self.base_url, handle);
-        
-        let response = self.client.get(&url)
+
+        let response = self
+            .client
+            .get(&url)
             .send()
             .await
             .map_err(|e| NetworkError::RequestError(e.to_string()))?;
-        
+
         if response.status() == 404 {
             return Ok(None);
         }
-        
+
         if !response.status().is_success() {
             return Err(NetworkError::ApiError(format!(
                 "API returned status: {}",
                 response.status()
             )));
         }
-        
-        let info: IdentityInfo = response.json().await
+
+        let info: IdentityInfo = response
+            .json()
+            .await
             .map_err(|e| NetworkError::ParseError(e.to_string()))?;
-        
+
         Ok(Some(info))
     }
-    
+
     /// Get identity info by public key
-    pub async fn get_identity(&self, public_key: &str) -> Result<Option<IdentityInfo>, NetworkError> {
+    pub async fn get_identity(
+        &self,
+        public_key: &str,
+    ) -> Result<Option<IdentityInfo>, NetworkError> {
         let url = format!("{}/identities/{}", self.base_url, public_key);
-        
-        let response = self.client.get(&url)
+
+        let response = self
+            .client
+            .get(&url)
             .send()
             .await
             .map_err(|e| NetworkError::RequestError(e.to_string()))?;
-        
+
         if response.status() == 404 {
             return Ok(None);
         }
-        
+
         if !response.status().is_success() {
             return Err(NetworkError::ApiError(format!(
                 "API returned status: {}",
                 response.status()
             )));
         }
-        
-        let info: IdentityInfo = response.json().await
+
+        let info: IdentityInfo = response
+            .json()
+            .await
             .map_err(|e| NetworkError::ParseError(e.to_string()))?;
-        
+
         Ok(Some(info))
     }
-    
+
     /// Get handle for a public key
-    pub async fn get_handle_for_key(&self, public_key: &str) -> Result<Option<String>, NetworkError> {
+    pub async fn get_handle_for_key(
+        &self,
+        public_key: &str,
+    ) -> Result<Option<String>, NetworkError> {
         let info = self.get_identity(public_key).await?;
         Ok(info.and_then(|i| i.handle))
     }
-    
+
     /// Claim a handle
     pub async fn claim_handle(
         &self,
@@ -96,7 +110,7 @@ impl ApiClient {
         breadcrumbs: &[Breadcrumb],
     ) -> Result<ClaimResponse, NetworkError> {
         let url = format!("{}/handles/claim", self.base_url);
-        
+
         let request = ClaimRequest {
             handle: handle.to_string(),
             public_key: public_key.to_string(),
@@ -104,21 +118,25 @@ impl ApiClient {
             signature: signature.to_string(),
             breadcrumbs: breadcrumbs.to_vec(),
         };
-        
-        let response = self.client.post(&url)
+
+        let response = self
+            .client
+            .post(&url)
             .json(&request)
             .send()
             .await
             .map_err(|e| NetworkError::RequestError(e.to_string()))?;
-        
+
         if !response.status().is_success() {
             let error_text = response.text().await.unwrap_or_default();
             return Err(NetworkError::ApiError(error_text));
         }
-        
-        let result: ClaimResponse = response.json().await
+
+        let result: ClaimResponse = response
+            .json()
+            .await
             .map_err(|e| NetworkError::ParseError(e.to_string()))?;
-        
+
         Ok(result)
     }
 }
@@ -143,27 +161,27 @@ impl RelayConnection {
             reconnect_attempts: 0,
         })
     }
-    
+
     /// Get the relay URL
     pub fn url(&self) -> &str {
         &self.url
     }
-    
+
     /// Check if connected
     pub fn is_connected(&self) -> bool {
         self.connected
     }
-    
+
     /// Get last message time
     pub fn last_message_time(&self) -> Option<i64> {
         self.last_message_time
     }
-    
+
     /// Get reconnect attempts
     pub fn reconnect_attempts(&self) -> u32 {
         self.reconnect_attempts
     }
-    
+
     /// Connect to the relay
     pub async fn connect(&mut self) -> Result<(), NetworkError> {
         // TODO: Implement WebSocket connection with tokio-tungstenite
@@ -172,27 +190,27 @@ impl RelayConnection {
         self.reconnect_attempts = 0;
         Ok(())
     }
-    
+
     /// Disconnect from the relay
     pub async fn disconnect(&mut self) -> Result<(), NetworkError> {
         tracing::info!("Disconnecting from relay");
         self.connected = false;
         Ok(())
     }
-    
+
     /// Reconnect to the relay
     pub async fn reconnect(&mut self) -> Result<(), NetworkError> {
         self.reconnect_attempts += 1;
         self.disconnect().await?;
         self.connect().await
     }
-    
+
     /// Send an envelope via the relay
     pub async fn send_envelope(&self, envelope: &GnsEnvelope) -> Result<(), NetworkError> {
         if !self.connected {
             return Err(NetworkError::NotConnected);
         }
-        
+
         // TODO: Implement actual WebSocket send
         tracing::debug!("Sending envelope: {}", envelope.id);
         Ok(())
@@ -233,19 +251,19 @@ pub struct ClaimResponse {
 pub enum NetworkError {
     #[error("Client error: {0}")]
     ClientError(String),
-    
+
     #[error("Request error: {0}")]
     RequestError(String),
-    
+
     #[error("API error: {0}")]
     ApiError(String),
-    
+
     #[error("Parse error: {0}")]
     ParseError(String),
-    
+
     #[error("Not connected to relay")]
     NotConnected,
-    
+
     #[error("WebSocket error: {0}")]
     WebSocketError(String),
 }

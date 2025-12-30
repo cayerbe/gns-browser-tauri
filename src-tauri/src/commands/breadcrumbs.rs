@@ -2,8 +2,8 @@
 //!
 //! Commands for managing location-based proof-of-trajectory.
 
-use tauri::State;
 use crate::AppState;
+use tauri::State;
 
 /// Get the current breadcrumb count
 #[tauri::command]
@@ -16,29 +16,32 @@ pub async fn get_breadcrumb_count(state: State<'_, AppState>) -> Result<u32, Str
 #[tauri::command]
 pub async fn get_breadcrumb_status(state: State<'_, AppState>) -> Result<BreadcrumbStatus, String> {
     let db = state.database.lock().await;
-    
+
     let count = db.count_breadcrumbs().unwrap_or(0);
     let unique_locations = db.count_unique_locations().unwrap_or(0);
     let first_breadcrumb = db.get_first_breadcrumb_time();
     let last_breadcrumb = db.get_last_breadcrumb_time();
-    
+
     // Check handle status
     let identity_mgr = state.identity.lock().await;
     let handle_claimed = identity_mgr.cached_handle().is_some();
-    
+
     // Determine collection strategy
     #[cfg(any(target_os = "ios", target_os = "android"))]
     let (strategy, collection_enabled) = {
         let collector = state.breadcrumb_collector.lock().await;
-        (collector.current_strategy().to_string(), collector.is_enabled())
+        (
+            collector.current_strategy().to_string(),
+            collector.is_enabled(),
+        )
     };
-    
+
     #[cfg(not(any(target_os = "ios", target_os = "android")))]
     let (strategy, collection_enabled) = ("desktop".to_string(), false);
-    
+
     // Calculate progress to 100
     let progress_percent = ((count as f32 / 100.0) * 100.0).min(100.0);
-    
+
     // Estimate time to 100 breadcrumbs
     let estimated_completion = if count < 100 && count > 0 {
         if let (Some(first), Some(last)) = (first_breadcrumb, last_breadcrumb) {
@@ -56,7 +59,7 @@ pub async fn get_breadcrumb_status(state: State<'_, AppState>) -> Result<Breadcr
     } else {
         None
     };
-    
+
     Ok(BreadcrumbStatus {
         count,
         target: if handle_claimed { None } else { Some(100) },
@@ -75,8 +78,7 @@ pub async fn get_breadcrumb_status(state: State<'_, AppState>) -> Result<Breadcr
 #[tauri::command]
 pub async fn set_collection_enabled(
     enabled: bool,
-    #[allow(unused_variables)]
-    state: State<'_, AppState>,
+    #[allow(unused_variables)] state: State<'_, AppState>,
 ) -> Result<(), String> {
     #[cfg(any(target_os = "ios", target_os = "android"))]
     {
@@ -88,7 +90,7 @@ pub async fn set_collection_enabled(
         }
         Ok(())
     }
-    
+
     #[cfg(not(any(target_os = "ios", target_os = "android")))]
     {
         Err("Breadcrumb collection is only available on mobile devices".to_string())
@@ -101,31 +103,31 @@ pub async fn set_collection_enabled(
 pub struct BreadcrumbStatus {
     /// Total breadcrumb count
     pub count: u32,
-    
+
     /// Target count (100 for handle claim, None if already claimed)
     pub target: Option<u32>,
-    
+
     /// Progress percentage (0-100)
     pub progress_percent: f32,
-    
+
     /// Number of unique H3 cells visited
     pub unique_locations: u32,
-    
+
     /// Timestamp of first breadcrumb
     pub first_breadcrumb_at: Option<i64>,
-    
+
     /// Timestamp of last breadcrumb
     pub last_breadcrumb_at: Option<i64>,
-    
+
     /// Current collection strategy
     pub collection_strategy: String,
-    
+
     /// Is collection currently enabled
     pub collection_enabled: bool,
-    
+
     /// Has the user claimed a handle
     pub handle_claimed: bool,
-    
+
     /// Estimated timestamp when 100 breadcrumbs will be reached
     pub estimated_completion_at: Option<i64>,
 }

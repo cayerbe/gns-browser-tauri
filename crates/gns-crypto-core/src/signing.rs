@@ -3,8 +3,8 @@
 //! Provides standalone signing and verification functions
 //! for use outside of the GnsIdentity context.
 
-use ed25519_dalek::{Signature, Signer, SigningKey, Verifier, VerifyingKey};
 use crate::errors::CryptoError;
+use ed25519_dalek::{Signature, Signer, SigningKey, Verifier, VerifyingKey};
 
 /// Sign a message with a raw private key
 pub fn sign_message(private_key: &[u8; 32], message: &[u8]) -> [u8; 64] {
@@ -53,7 +53,7 @@ pub fn verify_signature_hex(
 }
 
 /// Create a canonical message for signing
-/// 
+///
 /// This ensures that the same logical message produces the same bytes
 /// for signing across all platforms.
 pub fn canonicalize_for_signing(data: &serde_json::Value) -> Vec<u8> {
@@ -68,12 +68,12 @@ fn canonical_json(value: &serde_json::Value) -> String {
         serde_json::Value::Object(map) => {
             let mut pairs: Vec<_> = map.iter().collect();
             pairs.sort_by(|a, b| a.0.cmp(b.0));
-            
+
             let inner: Vec<String> = pairs
                 .iter()
                 .map(|(k, v)| format!("\"{}\":{}", k, canonical_json(v)))
                 .collect();
-            
+
             format!("{{{}}}", inner.join(","))
         }
         serde_json::Value::Array(arr) => {
@@ -138,7 +138,7 @@ mod tests {
         });
 
         let canonical = canonical_json(&json);
-        
+
         // Keys should be sorted
         assert_eq!(
             canonical,

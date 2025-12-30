@@ -19,10 +19,10 @@
 //! └─────────────────────────────────────────┘
 //! ```
 
-use serde::{Deserialize, Serialize};
 use crate::errors::CryptoError;
 use crate::identity::GnsIdentity;
 use crate::signing::verify_signature_hex;
+use serde::{Deserialize, Serialize};
 
 /// H3 resolution for breadcrumbs
 /// Resolution 7 ≈ 5.16 km² average cell area (~1.2 km edge)
@@ -59,7 +59,7 @@ pub fn create_breadcrumb(
     resolution: Option<u8>,
 ) -> Result<Breadcrumb, CryptoError> {
     let resolution = resolution.unwrap_or(DEFAULT_H3_RESOLUTION);
-    
+
     // Convert lat/lng to H3 index
     let h3_index = lat_lng_to_h3(latitude, longitude, resolution)?;
     let timestamp = chrono::Utc::now().timestamp();
@@ -114,9 +114,7 @@ pub fn create_breadcrumb_from_h3(
 pub fn verify_breadcrumb(breadcrumb: &Breadcrumb) -> Result<bool, CryptoError> {
     let signing_data = format!(
         "gns-breadcrumb-v1:{}:{}:{}",
-        breadcrumb.h3_index,
-        breadcrumb.timestamp,
-        breadcrumb.public_key
+        breadcrumb.h3_index, breadcrumb.timestamp, breadcrumb.public_key
     );
 
     verify_signature_hex(
@@ -158,7 +156,7 @@ fn lat_lng_to_h3(latitude: f64, longitude: f64, resolution: u8) -> Result<String
     let lat_quantized = ((latitude + 90.0) * 1000.0) as u64;
     let lng_quantized = ((longitude + 180.0) * 1000.0) as u64;
     let index = (lat_quantized << 32) | lng_quantized | ((resolution as u64) << 60);
-    
+
     Ok(format!("{:016x}", index))
 }
 
@@ -175,7 +173,7 @@ pub fn h3_grid_distance(h3_a: &str, h3_b: &str) -> Result<u32, CryptoError> {
             .map_err(|_| CryptoError::InvalidEnvelope("Invalid H3 index".to_string()))?;
         let b = u64::from_str_radix(h3_b, 16)
             .map_err(|_| CryptoError::InvalidEnvelope("Invalid H3 index".to_string()))?;
-        
+
         // Very rough approximation
         let diff = if a > b { a - b } else { b - a };
         Ok((diff % 1000) as u32)
@@ -240,10 +238,10 @@ impl Trajectory {
         }
 
         self.breadcrumbs.push(breadcrumb);
-        
+
         // Keep sorted by timestamp
         self.breadcrumbs.sort_by_key(|b| b.timestamp);
-        
+
         Ok(())
     }
 

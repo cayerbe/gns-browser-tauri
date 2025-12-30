@@ -3,9 +3,9 @@
 //! This crate compiles the gns-crypto-core to WebAssembly,
 //! providing the same cryptographic operations for Panthera web app.
 
-use wasm_bindgen::prelude::*;
-use gns_crypto_core::{GnsIdentity, create_envelope, open_envelope, create_breadcrumb};
+use gns_crypto_core::{create_breadcrumb, create_envelope, open_envelope, GnsIdentity};
 use serde::{Deserialize, Serialize};
+use wasm_bindgen::prelude::*;
 
 /// Initialize panic hook for better error messages
 #[wasm_bindgen(start)]
@@ -20,15 +20,14 @@ pub fn init() {
 #[wasm_bindgen]
 pub fn generate_identity() -> Result<JsValue, JsError> {
     let identity = GnsIdentity::generate();
-    
+
     let result = IdentityKeys {
         public_key: identity.public_key_hex(),
         encryption_key: identity.encryption_key_hex(),
         private_key: identity.private_key_hex(),
     };
-    
-    serde_wasm_bindgen::to_value(&result)
-        .map_err(|e| JsError::new(&e.to_string()))
+
+    serde_wasm_bindgen::to_value(&result).map_err(|e| JsError::new(&e.to_string()))
 }
 
 /// Restore identity from private key hex
@@ -37,14 +36,13 @@ pub fn generate_identity() -> Result<JsValue, JsError> {
 pub fn restore_identity(private_key_hex: &str) -> Result<JsValue, JsError> {
     let identity = GnsIdentity::from_hex(private_key_hex)
         .map_err(|e| JsError::new(&format!("Invalid private key: {}", e)))?;
-    
+
     let result = IdentityInfo {
         public_key: identity.public_key_hex(),
         encryption_key: identity.encryption_key_hex(),
     };
-    
-    serde_wasm_bindgen::to_value(&result)
-        .map_err(|e| JsError::new(&e.to_string()))
+
+    serde_wasm_bindgen::to_value(&result).map_err(|e| JsError::new(&e.to_string()))
 }
 
 // ==================== Signing Operations ====================
@@ -55,7 +53,7 @@ pub fn restore_identity(private_key_hex: &str) -> Result<JsValue, JsError> {
 pub fn sign_message(private_key_hex: &str, message: &[u8]) -> Result<String, JsError> {
     let identity = GnsIdentity::from_hex(private_key_hex)
         .map_err(|e| JsError::new(&format!("Invalid private key: {}", e)))?;
-    
+
     let signature = identity.sign_bytes(message);
     Ok(hex::encode(signature))
 }
@@ -68,12 +66,10 @@ pub fn verify_signature(
     message: &[u8],
     signature_hex: &str,
 ) -> Result<bool, JsError> {
-    let result = gns_crypto_core::signing::verify_signature_hex(
-        public_key_hex,
-        message,
-        signature_hex,
-    ).map_err(|e| JsError::new(&format!("Verification error: {}", e)))?;
-    
+    let result =
+        gns_crypto_core::signing::verify_signature_hex(public_key_hex, message, signature_hex)
+            .map_err(|e| JsError::new(&format!("Verification error: {}", e)))?;
+
     Ok(result)
 }
 
@@ -88,36 +84,33 @@ pub fn encrypt_for_recipient(
 ) -> Result<JsValue, JsError> {
     let recipient_key = hex::decode(recipient_encryption_key_hex)
         .map_err(|e| JsError::new(&format!("Invalid recipient key: {}", e)))?;
-    
+
     if recipient_key.len() != 32 {
         return Err(JsError::new("Recipient key must be 32 bytes"));
     }
-    
+
     let recipient_key_arr: [u8; 32] = recipient_key.try_into().unwrap();
-    
+
     let encrypted = gns_crypto_core::encrypt_for_recipient(plaintext, &recipient_key_arr)
         .map_err(|e| JsError::new(&format!("Encryption failed: {}", e)))?;
-    
-    serde_wasm_bindgen::to_value(&encrypted)
-        .map_err(|e| JsError::new(&e.to_string()))
+
+    serde_wasm_bindgen::to_value(&encrypted).map_err(|e| JsError::new(&e.to_string()))
 }
 
 /// Decrypt data sent to us
 /// Returns plaintext bytes
 #[wasm_bindgen]
-pub fn decrypt_message(
-    private_key_hex: &str,
-    encrypted_json: &str,
-) -> Result<Vec<u8>, JsError> {
+pub fn decrypt_message(private_key_hex: &str, encrypted_json: &str) -> Result<Vec<u8>, JsError> {
     let identity = GnsIdentity::from_hex(private_key_hex)
         .map_err(|e| JsError::new(&format!("Invalid private key: {}", e)))?;
-    
+
     let encrypted: gns_crypto_core::EncryptedPayload = serde_json::from_str(encrypted_json)
         .map_err(|e| JsError::new(&format!("Invalid encrypted payload: {}", e)))?;
-    
-    let plaintext = identity.decrypt(&encrypted)
+
+    let plaintext = identity
+        .decrypt(&encrypted)
         .map_err(|e| JsError::new(&format!("Decryption failed: {}", e)))?;
-    
+
     Ok(plaintext)
 }
 
@@ -135,16 +128,18 @@ pub fn create_signed_envelope(
 ) -> Result<String, JsError> {
     let sender = GnsIdentity::from_hex(sender_private_key_hex)
         .map_err(|e| JsError::new(&format!("Invalid sender key: {}", e)))?;
-    
+
     let envelope = create_envelope(
         &sender,
         recipient_public_key_hex,
         recipient_encryption_key_hex,
         payload_type,
         payload,
-    ).map_err(|e| JsError::new(&format!("Envelope creation failed: {}", e)))?;
-    
-    envelope.to_json()
+    )
+    .map_err(|e| JsError::new(&format!("Envelope creation failed: {}", e)))?;
+
+    envelope
+        .to_json()
         .map_err(|e| JsError::new(&format!("Serialization failed: {}", e)))
 }
 
@@ -157,13 +152,13 @@ pub fn open_signed_envelope(
 ) -> Result<JsValue, JsError> {
     let recipient = GnsIdentity::from_hex(recipient_private_key_hex)
         .map_err(|e| JsError::new(&format!("Invalid recipient key: {}", e)))?;
-    
+
     let envelope = gns_crypto_core::GnsEnvelope::from_json(envelope_json)
         .map_err(|e| JsError::new(&format!("Invalid envelope: {}", e)))?;
-    
+
     let opened = open_envelope(&recipient, &envelope)
         .map_err(|e| JsError::new(&format!("Failed to open envelope: {}", e)))?;
-    
+
     let result = OpenedEnvelopeResult {
         from_public_key: opened.from_public_key,
         from_handle: opened.from_handle,
@@ -173,9 +168,8 @@ pub fn open_signed_envelope(
         envelope_id: opened.envelope_id,
         timestamp: opened.timestamp,
     };
-    
-    serde_wasm_bindgen::to_value(&result)
-        .map_err(|e| JsError::new(&e.to_string()))
+
+    serde_wasm_bindgen::to_value(&result).map_err(|e| JsError::new(&e.to_string()))
 }
 
 // ==================== Breadcrumb Operations ====================
@@ -190,11 +184,12 @@ pub fn create_signed_breadcrumb(
 ) -> Result<String, JsError> {
     let identity = GnsIdentity::from_hex(private_key_hex)
         .map_err(|e| JsError::new(&format!("Invalid private key: {}", e)))?;
-    
+
     let breadcrumb = create_breadcrumb(&identity, latitude, longitude, None)
         .map_err(|e| JsError::new(&format!("Breadcrumb creation failed: {}", e)))?;
-    
-    breadcrumb.to_json()
+
+    breadcrumb
+        .to_json()
         .map_err(|e| JsError::new(&format!("Serialization failed: {}", e)))
 }
 
@@ -203,8 +198,9 @@ pub fn create_signed_breadcrumb(
 pub fn verify_breadcrumb(breadcrumb_json: &str) -> Result<bool, JsError> {
     let breadcrumb = gns_crypto_core::Breadcrumb::from_json(breadcrumb_json)
         .map_err(|e| JsError::new(&format!("Invalid breadcrumb: {}", e)))?;
-    
-    breadcrumb.verify()
+
+    breadcrumb
+        .verify()
         .map_err(|e| JsError::new(&format!("Verification failed: {}", e)))
 }
 
@@ -236,8 +232,8 @@ struct OpenedEnvelopeResult {
 }
 
 mod serde_bytes {
-    use serde::{Serializer, Serialize};
-    
+    use serde::{Serialize, Serializer};
+
     pub fn serialize<S>(bytes: &Vec<u8>, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -263,17 +259,15 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn test_sign_verify_roundtrip() {
-        let keys: IdentityKeys = serde_wasm_bindgen::from_value(
-            generate_identity().expect("Should generate")
-        ).expect("Should parse");
-        
+        let keys: IdentityKeys =
+            serde_wasm_bindgen::from_value(generate_identity().expect("Should generate"))
+                .expect("Should parse");
+
         let message = b"Test message";
-        let signature = sign_message(&keys.private_key, message)
-            .expect("Should sign");
-        
-        let valid = verify_signature(&keys.public_key, message, &signature)
-            .expect("Should verify");
-        
+        let signature = sign_message(&keys.private_key, message).expect("Should sign");
+
+        let valid = verify_signature(&keys.public_key, message, &signature).expect("Should verify");
+
         assert!(valid);
     }
 }

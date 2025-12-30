@@ -2,9 +2,9 @@
 //!
 //! Commands for managing the user's cryptographic identity.
 
-use tauri::State;
-use gns_crypto_core::GnsIdentity;
 use crate::AppState;
+use gns_crypto_core::GnsIdentity;
+use tauri::State;
 
 /// Get the user's Ed25519 public key (hex)
 #[tauri::command]
@@ -24,12 +24,12 @@ pub async fn get_encryption_key(state: State<'_, AppState>) -> Result<Option<Str
 #[tauri::command]
 pub async fn get_current_handle(state: State<'_, AppState>) -> Result<Option<String>, String> {
     let identity = state.identity.lock().await;
-    
+
     // First check local cache
     if let Some(handle) = identity.cached_handle() {
         return Ok(Some(handle));
     }
-    
+
     // If not cached, fetch from API
     if let Some(public_key) = identity.public_key_hex() {
         let api = &state.api;
@@ -56,13 +56,15 @@ pub async fn has_identity(state: State<'_, AppState>) -> Result<bool, String> {
 #[tauri::command]
 pub async fn generate_identity(state: State<'_, AppState>) -> Result<IdentityInfo, String> {
     let mut identity = state.identity.lock().await;
-    
+
     if identity.has_identity() {
-        return Err("Identity already exists. Export backup before generating new identity.".to_string());
+        return Err(
+            "Identity already exists. Export backup before generating new identity.".to_string(),
+        );
     }
-    
+
     identity.generate_new().map_err(|e| e.to_string())?;
-    
+
     Ok(IdentityInfo {
         public_key: identity.public_key_hex().unwrap_or_default(),
         encryption_key: identity.encryption_key_hex().unwrap_or_default(),
@@ -76,14 +78,16 @@ pub async fn import_identity(
     state: State<'_, AppState>,
 ) -> Result<IdentityInfo, String> {
     let mut identity = state.identity.lock().await;
-    
+
     // Validate the private key first
     let test_identity = GnsIdentity::from_hex(&private_key_hex)
         .map_err(|e| format!("Invalid private key: {}", e))?;
-    
+
     // Import into keychain
-    identity.import_from_hex(&private_key_hex).map_err(|e| e.to_string())?;
-    
+    identity
+        .import_from_hex(&private_key_hex)
+        .map_err(|e| e.to_string())?;
+
     Ok(IdentityInfo {
         public_key: test_identity.public_key_hex(),
         encryption_key: test_identity.encryption_key_hex(),
@@ -93,24 +97,21 @@ pub async fn import_identity(
 /// Export identity backup (for migration)
 /// ⚠️ This returns the private key - handle with extreme care!
 #[tauri::command]
-pub async fn export_identity_backup(
-    state: State<'_, AppState>,
-) -> Result<IdentityBackup, String> {
+pub async fn export_identity_backup(state: State<'_, AppState>) -> Result<IdentityBackup, String> {
     let identity = state.identity.lock().await;
-    
-    let private_key = identity.private_key_hex()
+
+    let private_key = identity.private_key_hex().ok_or("No identity to export")?;
+
+    let public_key = identity.public_key_hex().ok_or("No identity to export")?;
+
+    let encryption_key = identity
+        .encryption_key_hex()
         .ok_or("No identity to export")?;
-    
-    let public_key = identity.public_key_hex()
-        .ok_or("No identity to export")?;
-    
-    let encryption_key = identity.encryption_key_hex()
-        .ok_or("No identity to export")?;
-    
+
     // Get breadcrumb count
     let db = state.database.lock().await;
     let breadcrumb_count = db.count_breadcrumbs().unwrap_or(0);
-    
+
     Ok(IdentityBackup {
         version: 1,
         private_key,

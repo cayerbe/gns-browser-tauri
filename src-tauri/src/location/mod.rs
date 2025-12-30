@@ -3,21 +3,21 @@
 //! Handles GPS location collection and breadcrumb creation.
 //! Only active on mobile platforms (iOS/Android).
 
+use gns_crypto_core::{create_breadcrumb, Breadcrumb, GnsIdentity};
 use std::time::{Duration, Instant};
-use gns_crypto_core::{Breadcrumb, create_breadcrumb, GnsIdentity};
 
 /// Collection strategy based on user lifecycle
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum CollectionStrategy {
     /// New user: every 30 seconds
     Aggressive,
-    
+
     /// Established user: every 10 minutes when moving
     MotionAware,
-    
+
     /// Low battery: every 30 minutes
     BatterySaver,
-    
+
     /// Collection disabled
     Disabled,
 }
@@ -37,22 +37,22 @@ impl std::fmt::Display for CollectionStrategy {
 pub struct BreadcrumbCollector {
     /// Current collection strategy
     strategy: CollectionStrategy,
-    
+
     /// Is collection enabled
     enabled: bool,
-    
+
     /// Last collection time
     last_collection: Option<Instant>,
-    
+
     /// Breadcrumb count (cached)
     breadcrumb_count: u32,
-    
+
     /// Handle claimed status
     handle_claimed: bool,
-    
+
     /// Battery level (0.0 - 1.0)
     battery_level: f32,
-    
+
     /// Is device charging
     is_charging: bool,
 }
@@ -70,31 +70,34 @@ impl BreadcrumbCollector {
             is_charging: false,
         }
     }
-    
+
     /// Start collection
     pub fn start(&mut self) -> Result<(), CollectorError> {
         self.enabled = true;
         self.recalculate_strategy();
-        tracing::info!("Breadcrumb collection started with strategy: {:?}", self.strategy);
+        tracing::info!(
+            "Breadcrumb collection started with strategy: {:?}",
+            self.strategy
+        );
         Ok(())
     }
-    
+
     /// Stop collection
     pub fn stop(&mut self) {
         self.enabled = false;
         tracing::info!("Breadcrumb collection stopped");
     }
-    
+
     /// Check if enabled
     pub fn is_enabled(&self) -> bool {
         self.enabled
     }
-    
+
     /// Get current strategy
     pub fn current_strategy(&self) -> CollectionStrategy {
         self.strategy
     }
-    
+
     /// Update state
     pub fn update_state(
         &mut self,
@@ -107,25 +110,23 @@ impl BreadcrumbCollector {
         self.handle_claimed = handle_claimed;
         self.battery_level = battery_level;
         self.is_charging = is_charging;
-        
+
         self.recalculate_strategy();
     }
-    
+
     /// Recalculate strategy based on current state
     fn recalculate_strategy(&mut self) {
         if !self.enabled {
             self.strategy = CollectionStrategy::Disabled;
             return;
         }
-        
+
         self.strategy = if self.battery_level < 0.15 && !self.is_charging {
             // Critical battery
             CollectionStrategy::BatterySaver
-            
         } else if !self.handle_claimed && self.breadcrumb_count < 100 {
             // New user - aggressive collection
             CollectionStrategy::Aggressive
-            
         } else if self.handle_claimed {
             // Established user
             if self.battery_level < 0.30 && !self.is_charging {
@@ -133,11 +134,10 @@ impl BreadcrumbCollector {
             } else {
                 CollectionStrategy::MotionAware
             }
-            
         } else {
             CollectionStrategy::MotionAware
         };
-        
+
         tracing::debug!(
             "Strategy: {:?} (breadcrumbs: {}, handle: {}, battery: {:.0}%)",
             self.strategy,
@@ -146,7 +146,7 @@ impl BreadcrumbCollector {
             self.battery_level * 100.0
         );
     }
-    
+
     /// Get collection interval
     pub fn collection_interval(&self) -> Duration {
         match self.strategy {
@@ -156,25 +156,25 @@ impl BreadcrumbCollector {
             CollectionStrategy::Disabled => Duration::from_secs(u64::MAX),
         }
     }
-    
+
     /// Should collect now?
     pub fn should_collect(&self) -> bool {
         if !self.enabled {
             return false;
         }
-        
+
         match self.last_collection {
             Some(last) => last.elapsed() >= self.collection_interval(),
             None => true,
         }
     }
-    
+
     /// Record a successful collection
     pub fn record_collection(&mut self) {
         self.last_collection = Some(Instant::now());
         self.breadcrumb_count += 1;
     }
-    
+
     /// Create a breadcrumb from coordinates
     pub fn create_breadcrumb(
         &self,
@@ -198,10 +198,10 @@ impl Default for BreadcrumbCollector {
 pub enum CollectorError {
     #[error("Location error: {0}")]
     LocationError(String),
-    
+
     #[error("Crypto error: {0}")]
     CryptoError(String),
-    
+
     #[error("Permission denied")]
     PermissionDenied,
 }

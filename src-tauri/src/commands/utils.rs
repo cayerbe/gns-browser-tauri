@@ -2,8 +2,8 @@
 //!
 //! Miscellaneous utility commands.
 
-use tauri::State;
 use crate::AppState;
+use tauri::State;
 
 /// Get app version information
 #[tauri::command]
@@ -24,7 +24,7 @@ pub async fn open_external_url(url: String) -> Result<(), String> {
     if !url.starts_with("http://") && !url.starts_with("https://") {
         return Err("Only HTTP/HTTPS URLs can be opened externally".to_string());
     }
-    
+
     open::that(&url).map_err(|e| format!("Failed to open URL: {}", e))
 }
 
@@ -33,13 +33,13 @@ pub async fn open_external_url(url: String) -> Result<(), String> {
 pub async fn get_offline_status(state: State<'_, AppState>) -> Result<OfflineStatus, String> {
     let db = state.database.lock().await;
     let relay = state.relay.lock().await;
-    
+
     let breadcrumb_count = db.count_breadcrumbs().unwrap_or(0);
     let pending_messages = db.count_pending_messages().unwrap_or(0);
     let last_sync = db.get_last_sync_time();
-    
+
     let is_online = relay.is_connected();
-    
+
     Ok(OfflineStatus {
         is_online,
         breadcrumb_count,

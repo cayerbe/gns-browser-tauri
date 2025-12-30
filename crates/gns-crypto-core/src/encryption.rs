@@ -11,10 +11,10 @@ use chacha20poly1305::{
     ChaCha20Poly1305, Nonce,
 };
 use hkdf::Hkdf;
-use rand::RngCore;
 use rand::rngs::OsRng;
-use sha2::Sha256;
+use rand::RngCore;
 use serde::{Deserialize, Serialize};
+use sha2::Sha256;
 use x25519_dalek::{EphemeralSecret, PublicKey as X25519PublicKey, StaticSecret};
 use zeroize::Zeroize;
 
@@ -99,11 +99,8 @@ pub fn decrypt_from_sender(
     }
 
     // Parse ephemeral public key
-    let ephemeral_public_bytes: [u8; 32] = encrypted
-        .ephemeral_public_key
-        .clone()
-        .try_into()
-        .unwrap();
+    let ephemeral_public_bytes: [u8; 32] =
+        encrypted.ephemeral_public_key.clone().try_into().unwrap();
     let ephemeral_public = X25519PublicKey::from(ephemeral_public_bytes);
 
     // Perform ECDH with our static secret
@@ -189,17 +186,11 @@ mod tests {
 
         let plaintext = b"Hello, this is a secret message!";
 
-        let encrypted = encrypt_for_recipient(
-            plaintext,
-            &recipient.encryption_public_key_bytes(),
-        )
-        .expect("Encryption should succeed");
+        let encrypted = encrypt_for_recipient(plaintext, &recipient.encryption_public_key_bytes())
+            .expect("Encryption should succeed");
 
-        let decrypted = decrypt_from_sender(
-            recipient.x25519_secret(),
-            &encrypted,
-        )
-        .expect("Decryption should succeed");
+        let decrypted = decrypt_from_sender(recipient.x25519_secret(), &encrypted)
+            .expect("Decryption should succeed");
 
         assert_eq!(plaintext.as_slice(), decrypted.as_slice());
     }
@@ -212,17 +203,11 @@ mod tests {
 
         let plaintext = b"Secret message";
 
-        let encrypted = encrypt_for_recipient(
-            plaintext,
-            &recipient.encryption_public_key_bytes(),
-        )
-        .expect("Encryption should succeed");
+        let encrypted = encrypt_for_recipient(plaintext, &recipient.encryption_public_key_bytes())
+            .expect("Encryption should succeed");
 
         // Wrong recipient should fail to decrypt
-        let result = decrypt_from_sender(
-            wrong_recipient.x25519_secret(),
-            &encrypted,
-        );
+        let result = decrypt_from_sender(wrong_recipient.x25519_secret(), &encrypted);
 
         assert!(result.is_err());
     }
@@ -232,21 +217,16 @@ mod tests {
         let recipient = GnsIdentity::generate();
         let plaintext = b"Secret message";
 
-        let mut encrypted = encrypt_for_recipient(
-            plaintext,
-            &recipient.encryption_public_key_bytes(),
-        )
-        .expect("Encryption should succeed");
+        let mut encrypted =
+            encrypt_for_recipient(plaintext, &recipient.encryption_public_key_bytes())
+                .expect("Encryption should succeed");
 
         // Tamper with ciphertext
         if let Some(byte) = encrypted.ciphertext.get_mut(0) {
             *byte ^= 0xFF;
         }
 
-        let result = decrypt_from_sender(
-            recipient.x25519_secret(),
-            &encrypted,
-        );
+        let result = decrypt_from_sender(recipient.x25519_secret(), &encrypted);
 
         assert!(result.is_err());
     }
@@ -256,11 +236,8 @@ mod tests {
         let recipient = GnsIdentity::generate();
         let plaintext = b"Test message";
 
-        let encrypted = encrypt_for_recipient(
-            plaintext,
-            &recipient.encryption_public_key_bytes(),
-        )
-        .expect("Encryption should succeed");
+        let encrypted = encrypt_for_recipient(plaintext, &recipient.encryption_public_key_bytes())
+            .expect("Encryption should succeed");
 
         // Serialize to JSON
         let json = serde_json::to_string(&encrypted).expect("Serialization should succeed");
@@ -270,11 +247,8 @@ mod tests {
             serde_json::from_str(&json).expect("Deserialization should succeed");
 
         // Decrypt should still work
-        let decrypted = decrypt_from_sender(
-            recipient.x25519_secret(),
-            &deserialized,
-        )
-        .expect("Decryption should succeed");
+        let decrypted = decrypt_from_sender(recipient.x25519_secret(), &deserialized)
+            .expect("Decryption should succeed");
 
         assert_eq!(plaintext.as_slice(), decrypted.as_slice());
     }

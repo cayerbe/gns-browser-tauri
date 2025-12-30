@@ -2,8 +2,8 @@
 //!
 //! Commands for resolving and claiming @handles.
 
-use tauri::State;
 use crate::AppState;
+use tauri::State;
 
 /// Resolve a handle to identity information
 #[tauri::command]
@@ -12,10 +12,13 @@ pub async fn resolve_handle(
     state: State<'_, AppState>,
 ) -> Result<Option<HandleInfo>, String> {
     let clean_handle = handle.trim_start_matches('@').to_lowercase();
-    
-    let info = state.api.resolve_handle(&clean_handle).await
+
+    let info = state
+        .api
+        .resolve_handle(&clean_handle)
+        .await
         .map_err(|e| format!("Failed to resolve handle: {}", e))?;
-    
+
     Ok(info.map(|i| HandleInfo {
         handle: clean_handle,
         public_key: i.public_key,
@@ -33,20 +36,26 @@ pub async fn check_handle_available(
     state: State<'_, AppState>,
 ) -> Result<HandleAvailability, String> {
     let clean_handle = handle.trim_start_matches('@').to_lowercase();
-    
+
     // Validate format
     if !is_valid_handle_format(&clean_handle) {
         return Ok(HandleAvailability {
             handle: clean_handle,
             available: false,
-            reason: Some("Invalid format. Use 3-20 characters, letters, numbers, and underscores only.".to_string()),
+            reason: Some(
+                "Invalid format. Use 3-20 characters, letters, numbers, and underscores only."
+                    .to_string(),
+            ),
         });
     }
-    
+
     // Check if already taken
-    let existing = state.api.resolve_handle(&clean_handle).await
+    let existing = state
+        .api
+        .resolve_handle(&clean_handle)
+        .await
         .map_err(|e| format!("Failed to check handle: {}", e))?;
-    
+
     if existing.is_some() {
         return Ok(HandleAvailability {
             handle: clean_handle,
@@ -54,7 +63,7 @@ pub async fn check_handle_available(
             reason: Some("This handle is already claimed.".to_string()),
         });
     }
-    
+
     // Check reserved handles
     if is_reserved_handle(&clean_handle) {
         return Ok(HandleAvailability {
@@ -63,7 +72,7 @@ pub async fn check_handle_available(
             reason: Some("This handle is reserved.".to_string()),
         });
     }
-    
+
     Ok(HandleAvailability {
         handle: clean_handle,
         available: true,
@@ -78,29 +87,32 @@ pub async fn claim_handle(
     state: State<'_, AppState>,
 ) -> Result<ClaimResult, String> {
     let clean_handle = handle.trim_start_matches('@').to_lowercase();
-    
+
     // Check availability first
     let availability = check_handle_available(clean_handle.clone(), state.clone()).await?;
     if !availability.available {
-        return Err(availability.reason.unwrap_or("Handle not available".to_string()));
+        return Err(availability
+            .reason
+            .unwrap_or("Handle not available".to_string()));
     }
-    
+
     // Check breadcrumb count
     let db = state.database.lock().await;
     let breadcrumb_count = db.count_breadcrumbs().unwrap_or(0);
-    
+
     if breadcrumb_count < 100 {
         return Err(format!(
             "Need 100 breadcrumbs to claim a handle. You have {}.",
             breadcrumb_count
         ));
     }
-    
+
     // Get identity
     let identity_mgr = state.identity.lock().await;
-    let identity = identity_mgr.get_identity()
+    let identity = identity_mgr
+        .get_identity()
         .ok_or("No identity configured")?;
-    
+
     // Create claim signature
     let claim_data = format!(
         "gns-claim-v1:{}:{}:{}",
@@ -109,27 +121,32 @@ pub async fn claim_handle(
         chrono::Utc::now().timestamp()
     );
     let signature = identity.sign_bytes(claim_data.as_bytes());
-    
+
     // Get breadcrumbs for submission
-    let breadcrumbs = db.get_recent_breadcrumbs(100)
+    let breadcrumbs = db
+        .get_recent_breadcrumbs(100)
         .map_err(|e| format!("Failed to get breadcrumbs: {}", e))?;
-    
+
     drop(db); // Release lock before API call
-    
+
     // Submit claim to API
-    let result = state.api.claim_handle(
-        &clean_handle,
-        &identity.public_key_hex(),
-        &identity.encryption_key_hex(),
-        &hex::encode(signature),
-        &breadcrumbs,
-    ).await.map_err(|e| format!("Claim failed: {}", e))?;
-    
+    let result = state
+        .api
+        .claim_handle(
+            &clean_handle,
+            &identity.public_key_hex(),
+            &identity.encryption_key_hex(),
+            &hex::encode(signature),
+            &breadcrumbs,
+        )
+        .await
+        .map_err(|e| format!("Claim failed: {}", e))?;
+
     // Cache the claimed handle
     drop(identity_mgr);
     let mut identity_mgr = state.identity.lock().await;
     identity_mgr.set_cached_handle(Some(clean_handle.clone()));
-    
+
     Ok(ClaimResult {
         success: true,
         handle: clean_handle,
@@ -143,16 +160,18 @@ fn is_valid_handle_format(handle: &str) -> bool {
     if handle.len() < 3 || handle.len() > 20 {
         return false;
     }
-    
-    handle.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_')
+
+    handle
+        .chars()
+        .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_')
 }
 
 fn is_reserved_handle(handle: &str) -> bool {
     const RESERVED: &[&str] = &[
-        "admin", "root", "system", "support", "help", "gns", "globe", "crumbs",
-        "official", "verified", "bot", "echo", "news", "alerts", "security",
+        "admin", "root", "system", "support", "help", "gns", "globe", "crumbs", "official",
+        "verified", "bot", "echo", "news", "alerts", "security",
     ];
-    
+
     RESERVED.contains(&handle)
 }
 

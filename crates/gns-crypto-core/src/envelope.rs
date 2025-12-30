@@ -31,7 +31,7 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::encryption::{encrypt_for_recipient, decrypt_from_sender, EncryptedPayload};
+use crate::encryption::{decrypt_from_sender, encrypt_for_recipient, EncryptedPayload};
 use crate::errors::CryptoError;
 use crate::identity::GnsIdentity;
 use crate::signing::{canonicalize_for_signing, verify_signature_hex};
@@ -78,28 +78,28 @@ pub struct GnsEnvelope {
 pub struct OpenedEnvelope {
     /// Sender's public key
     pub from_public_key: String,
-    
+
     /// Sender's handle
     pub from_handle: Option<String>,
-    
+
     /// Payload type
     pub payload_type: String,
-    
+
     /// Decrypted payload bytes
     pub payload: Vec<u8>,
-    
+
     /// Was the signature valid?
     pub signature_valid: bool,
-    
+
     /// Original envelope ID
     pub envelope_id: String,
-    
+
     /// Timestamp
     pub timestamp: i64,
-    
+
     /// Thread ID
     pub thread_id: Option<String>,
-    
+
     /// Reply-to ID
     pub reply_to_id: Option<String>,
 }
@@ -136,7 +136,9 @@ pub fn create_envelope(
         to_public_keys: vec![recipient_public_key_hex.to_string()],
         payload_type: payload_type.to_string(),
         timestamp,
-        encrypted_payload_hash: blake3::hash(&serde_json::to_vec(&encrypted_payload)?).to_hex().to_string(),
+        encrypted_payload_hash: blake3::hash(&serde_json::to_vec(&encrypted_payload)?)
+            .to_hex()
+            .to_string(),
     };
 
     // Sign the header
@@ -188,7 +190,9 @@ pub fn create_envelope_with_metadata(
         to_public_keys: envelope.to_public_keys.clone(),
         payload_type: envelope.payload_type.clone(),
         timestamp: envelope.timestamp,
-        encrypted_payload_hash: blake3::hash(&serde_json::to_vec(&envelope.encrypted_payload)?).to_hex().to_string(),
+        encrypted_payload_hash: blake3::hash(&serde_json::to_vec(&envelope.encrypted_payload)?)
+            .to_hex()
+            .to_string(),
     };
 
     let header_bytes = canonicalize_for_signing(&serde_json::to_value(&header)?);
@@ -210,7 +214,9 @@ pub fn open_envelope(
         to_public_keys: envelope.to_public_keys.clone(),
         payload_type: envelope.payload_type.clone(),
         timestamp: envelope.timestamp,
-        encrypted_payload_hash: blake3::hash(&serde_json::to_vec(&envelope.encrypted_payload)?).to_hex().to_string(),
+        encrypted_payload_hash: blake3::hash(&serde_json::to_vec(&envelope.encrypted_payload)?)
+            .to_hex()
+            .to_string(),
     };
 
     let header_bytes = canonicalize_for_signing(&serde_json::to_value(&header)?);
@@ -221,10 +227,7 @@ pub fn open_envelope(
     )?;
 
     // Decrypt payload
-    let payload = decrypt_from_sender(
-        recipient.x25519_secret(),
-        &envelope.encrypted_payload,
-    )?;
+    let payload = decrypt_from_sender(recipient.x25519_secret(), &envelope.encrypted_payload)?;
 
     Ok(OpenedEnvelope {
         from_public_key: envelope.from_public_key.clone(),
@@ -289,8 +292,7 @@ mod tests {
         )
         .expect("Envelope creation should succeed");
 
-        let opened = open_envelope(&recipient, &envelope)
-            .expect("Envelope opening should succeed");
+        let opened = open_envelope(&recipient, &envelope).expect("Envelope opening should succeed");
 
         assert!(opened.signature_valid);
         assert_eq!(opened.from_public_key, sender.public_key_hex());
