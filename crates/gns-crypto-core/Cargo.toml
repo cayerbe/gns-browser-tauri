@@ -24,7 +24,7 @@ hmac = "0.12"
 # Randomness
 rand = "=0.8.5"
 rand_core = "0.6"
-getrandom = { version = "0.2", features = ["js"], optional = true }
+getrandom = { version = "0.3", features = ["js"], optional = true }
 
 # Secure memory
 zeroize = { version = "1.7", features = ["derive"] }
