@@ -27,7 +27,7 @@ jobs:
       - uses: actions/checkout@v4
       
       - name: Setup Rust
-        uses: dtolnay/rust-action@stable
+        uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy, rustfmt
       
@@ -75,7 +75,7 @@ jobs:
           node-version: '20'
 
       - name: Setup Rust
-        uses: dtolnay/rust-action@stable
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Install Linux dependencies
         if: matrix.platform == 'ubuntu-22.04'
@@ -156,7 +156,7 @@ jobs:
           node-version: '20'
 
       - name: Setup Rust
-        uses: dtolnay/rust-action@stable
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Add iOS targets
         run: |
@@ -225,7 +225,7 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: Setup Rust
-        uses: dtolnay/rust-action@stable
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Add Android targets
         run: |
@@ -294,7 +294,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Setup Rust
-        uses: dtolnay/rust-action@stable
+        uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown
 

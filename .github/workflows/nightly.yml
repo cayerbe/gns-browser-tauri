@@ -38,7 +38,7 @@ jobs:
           node-version: '20'
 
       - name: Setup Rust
-        uses: dtolnay/rust-action@stable
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Install Linux dependencies
         if: matrix.platform == 'ubuntu-22.04'
@@ -93,7 +93,7 @@ jobs:
           node-version: '20'
 
       - name: Setup Rust
-        uses: dtolnay/rust-action@stable
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Add iOS target
         run: rustup target add aarch64-apple-ios
