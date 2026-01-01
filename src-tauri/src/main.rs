@@ -63,10 +63,32 @@ fn main() {
 
             // Initialize state
             let state = setup_app_state()?;
+            
+            // Get public key for WebSocket auth (if identity exists)
+            let public_key = {
+                let identity = futures::executor::block_on(state.identity.lock());
+                identity.public_key_hex()
+            };
+            
+            // Clone relay for the async connect task
+            let relay = state.relay.clone();
+            
             app.manage(state);
 
             // Setup deep link handler
             setup_deep_links(app.handle().clone());
+
+            // Connect to WebSocket relay if we have an identity
+            if let Some(pk) = public_key {
+                tauri::async_runtime::spawn(async move {
+                    let relay_guard = relay.lock().await;
+                    if let Err(e) = relay_guard.connect(&pk).await {
+                        tracing::error!("Failed to connect to relay: {}", e);
+                    } else {
+                        tracing::info!("Connected to WebSocket relay");
+                    }
+                });
+            }
 
             tracing::info!("Application setup complete");
             Ok(())
@@ -115,10 +137,10 @@ fn setup_app_state() -> Result<AppState, Box<dyn std::error::Error>> {
     let identity = IdentityManager::new()?;
 
     // Initialize API client
-    let api = ApiClient::new("https://api.gcrumbs.com")?;
+    let api = ApiClient::new("https://gns-browser-production.up.railway.app")?;
 
     // Initialize relay connection
-    let relay = RelayConnection::new("wss://relay.gcrumbs.com")?;
+    let relay = RelayConnection::new("wss://gns-browser-production.up.railway.app")?;
 
     // Initialize breadcrumb collector (mobile only)
     #[cfg(any(target_os = "ios", target_os = "android"))]

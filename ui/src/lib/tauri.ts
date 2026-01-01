@@ -242,12 +242,12 @@ export function useIdentity() {
     try {
       setLoading(true);
       setError(null);
-      
+
       const [pk, h] = await Promise.all([
         getPublicKey(),
         getCurrentHandle(),
       ]);
-      
+
       setPublicKey(pk);
       setHandle(h);
     } catch (e) {

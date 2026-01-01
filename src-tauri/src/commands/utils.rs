@@ -20,7 +20,6 @@ pub async fn get_app_version() -> Result<AppVersion, String> {
 /// Open a URL in the system browser
 #[tauri::command]
 pub async fn open_external_url(url: String) -> Result<(), String> {
-    // Validate URL
     if !url.starts_with("http://") && !url.starts_with("https://") {
         return Err("Only HTTP/HTTPS URLs can be opened externally".to_string());
     }
@@ -37,8 +36,7 @@ pub async fn get_offline_status(state: State<'_, AppState>) -> Result<OfflineSta
     let breadcrumb_count = db.count_breadcrumbs().unwrap_or(0);
     let pending_messages = db.count_pending_messages().unwrap_or(0);
     let last_sync = db.get_last_sync_time();
-
-    let is_online = relay.is_connected();
+    let is_online = relay.is_connected().await;
 
     Ok(OfflineStatus {
         is_online,
@@ -51,8 +49,6 @@ pub async fn get_offline_status(state: State<'_, AppState>) -> Result<OfflineSta
         }),
     })
 }
-
-// ==================== Types ====================
 
 #[derive(serde::Serialize)]
 pub struct AppVersion {

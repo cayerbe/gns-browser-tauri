@@ -137,7 +137,7 @@ pub async fn claim_handle(
             &identity.public_key_hex(),
             &identity.encryption_key_hex(),
             &hex::encode(signature),
-            &breadcrumbs,
+            breadcrumbs.clone(),
         )
         .await
         .map_err(|e| format!("Claim failed: {}", e))?;

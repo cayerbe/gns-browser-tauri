@@ -11,21 +11,23 @@ pub async fn get_connection_status(state: State<'_, AppState>) -> Result<Connect
     let relay = state.relay.lock().await;
 
     Ok(ConnectionStatus {
-        relay_connected: relay.is_connected(),
+        relay_connected: relay.is_connected().await,
         relay_url: relay.url().to_string(),
-        last_message_at: relay.last_message_time(),
-        reconnect_attempts: relay.reconnect_attempts(),
+        last_message_at: relay.last_message_time().await,
+        reconnect_attempts: relay.reconnect_attempts().await,
     })
 }
 
 /// Force reconnect to relay
 #[tauri::command]
 pub async fn reconnect(state: State<'_, AppState>) -> Result<(), String> {
-    let mut relay = state.relay.lock().await;
-    relay.reconnect().await.map_err(|e| e.to_string())
+    let identity = state.identity.lock().await;
+    let public_key = identity.public_key_hex().ok_or("No identity configured")?;
+    drop(identity);
+    
+    let relay = state.relay.lock().await;
+    relay.reconnect(&public_key).await.map_err(|e| e.to_string())
 }
-
-// ==================== Types ====================
 
 #[derive(serde::Serialize)]
 pub struct ConnectionStatus {

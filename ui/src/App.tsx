@@ -16,6 +16,7 @@ import { BreadcrumbsTab } from './components/BreadcrumbsTab';
 import { SettingsTab } from './components/SettingsTab';
 import { HandleClaimScreen } from './components/HandleClaimScreen';
 import { IdentityViewer } from './components/IdentityViewer';
+import { NewConversation } from './components/NewConversation';
 import { LoadingScreen } from './components/LoadingScreen';
 
 const queryClient = new QueryClient({
@@ -61,6 +62,7 @@ function AppContent() {
         <Route path="/" element={<MainLayout />}>
           <Route index element={<HomeTab />} />
           <Route path="messages" element={<MessagesTab />} />
+          <Route path="messages/new" element={<NewConversation />} />
           <Route path="messages/:threadId" element={<ConversationScreen />} />
           <Route path="breadcrumbs" element={<BreadcrumbsTab />} />
           <Route path="settings" element={<SettingsTab />} />
