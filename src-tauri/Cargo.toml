@@ -58,7 +58,7 @@ base64 = "0.21"
 thiserror = "1.0"
 anyhow = "1.0"
 open = "5.0"
-dirs = "5.0"
+dirs = "6.0"
 regex = "1.10"
 sha2 = "0.10"
 stellar-xdr = { version = "21.1", features = ["std", "curr"] }
