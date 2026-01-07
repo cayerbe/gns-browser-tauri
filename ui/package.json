@@ -17,7 +17,7 @@
     "@tauri-apps/api": "^2.0.0",
     "@tauri-apps/plugin-geolocation": "^2.3.2",
     "clsx": "^2.0.0",
-    "date-fns": "^2.30.0",
+    "date-fns": "^4.1.0",
     "framer-motion": "^12.23.26",
     "html5-qrcode": "^2.3.8",
     "lucide-react": "^0.294.0",
