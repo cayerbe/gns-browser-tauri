@@ -15,6 +15,7 @@ import {
   Wifi,
   WifiOff,
   RefreshCw,
+  ScanLine,
 } from 'lucide-react';
 import {
   useIdentity,
@@ -27,6 +28,7 @@ import {
   AppVersion,
 } from '../lib/tauri';
 import { invoke } from '@tauri-apps/api/core';
+import { useNavigate } from 'react-router-dom';
 
 interface ConnectionStatus {
   relay_connected: boolean;
@@ -36,6 +38,7 @@ interface ConnectionStatus {
 }
 
 export function SettingsTab() {
+  const navigate = useNavigate();
   const { publicKey, handle } = useIdentity();
   const [version, setVersion] = useState<AppVersion | null>(null);
   const [showBackup, setShowBackup] = useState(false);
@@ -200,6 +203,13 @@ export function SettingsTab() {
                 alert(`Error: ${e}`);
               }
             }}
+            showArrow
+          />
+          <SettingsItem
+            icon={<ScanLine className="w-5 h-5" />}
+            title="Connected Browsers"
+            subtitle="Manage paired sessions"
+            onClick={() => navigate('/settings/browser-pairing')}
             showArrow
           />
           <SettingsItem

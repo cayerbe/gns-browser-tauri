@@ -6,5 +6,7 @@
     <string>Gcrumbs needs your location to collect breadcrumbs for proof-of-trajectory, proving you're a real human.</string>
     <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
     <string>Gcrumbs collects location in the background to build your proof-of-trajectory and claim your @handle.</string>
+    <key>NSCameraUsageDescription</key>
+    <string>Camera access is needed to scan QR codes for browser pairing.</string>
 </dict>
 </plist>

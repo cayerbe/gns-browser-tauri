@@ -34,6 +34,7 @@ import { IdentityViewer } from './components/IdentityViewer';
 import { GnsTokenScreen, SendMoneyScreen, PaymentHistoryScreen } from './components/wallet';
 import { DixTimeline } from './pages/DixTimeline';
 import { PostDetailPage } from './pages/PostDetailPage';
+import { BrowserPairingScreen } from './components/BrowserPairingScreen';
 
 // Hooks
 import { useBreadcrumbCollection } from './hooks/useBreadcrumbCollection';
@@ -183,7 +184,9 @@ function AppContent() {
           <Route path="/settings" element={<SettingsTab onIdentityDeleted={handleIdentityDeleted} />} />
           <Route path="/identity" element={<IdentityViewer />} />
           <Route path="/dix" element={<DixTimeline />} />
+
           <Route path="/dix/post/:postId" element={<PostDetailPage />} />
+          <Route path="/settings/browser-pairing" element={<BrowserPairingScreen />} />
         </Route>
 
         {/* Wallet routes (full-screen) */}

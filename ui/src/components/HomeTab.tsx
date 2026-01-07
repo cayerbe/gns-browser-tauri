@@ -12,7 +12,6 @@ import { useNavigate } from 'react-router-dom';
 import {
   Copy,
   Check,
-  ExternalLink,
   QrCode,
   ArrowRight,
   Sparkles,
@@ -21,6 +20,8 @@ import {
   Send,
   Gift,
   History,
+  ScanLine,
+  ExternalLink,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useIdentity, useBreadcrumbStatus, useStellarBalances } from '../lib/tauri';
@@ -67,6 +68,17 @@ export function HomeTab({ onViewGSite }: HomeTabProps) {
 
   return (
     <div className="p-4 space-y-6">
+      {/* Header with Pair Browser Button */}
+      <div className="flex justify-end">
+        <button
+          onClick={() => navigate('/settings/browser-pairing')}
+          className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 text-cyan-400 rounded-lg text-sm font-medium hover:bg-slate-700 transition-colors border border-slate-700"
+        >
+          <ScanLine size={16} />
+          Pair Browser
+        </button>
+      </div>
+
       {/* Identity Card */}
       <div className="card p-6">
         <div className="flex items-start justify-between mb-6">
@@ -291,6 +303,13 @@ export function HomeTab({ onViewGSite }: HomeTabProps) {
           title="Share Identity"
           description="Show QR code for your identity"
           onClick={() => { }}
+        />
+
+        <QuickAction
+          icon={<ScanLine className="w-5 h-5" />}
+          title="Pair Browser"
+          description="Scan QR code to connect"
+          onClick={() => navigate('/settings/browser-pairing')}
         />
 
         <QuickAction
