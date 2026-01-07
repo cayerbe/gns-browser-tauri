@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { Search, Globe, Megaphone, Mail, MessageCircle, Video, Home, User, ArrowLeft, ArrowRight, RotateCw, Star, Menu, X, Building, MapPin, Package, Moon, Sun, Download, Loader2, ExternalLink, Copy, Check, Send, LogOut, Wifi, WifiOff, Inbox, ChevronLeft, Shield, Smartphone, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Search, Globe, Megaphone, Mail, MessageCircle, Video, Home, User, ArrowLeft, ArrowRight, RotateCw, Star, Menu, X, Building, MapPin, Package, Moon, Sun, Download, Loader2, ExternalLink, Copy, Check, Send, LogOut, Wifi, WifiOff, Inbox, ChevronLeft, Shield, Smartphone, RefreshCw, AlertTriangle, Sparkles } from 'lucide-react';
 import { getProfileByHandle, searchIdentities } from './gnsApi';
 import { getSession, signIn, signOut, isAuthenticated } from './auth';
 import { fetchInbox, fetchConversation } from './messaging';
@@ -396,6 +396,8 @@ export default function App() {
     { icon: MessageCircle, label: 'echo', color: '#10B981' },
     { icon: Video, label: 'video', color: '#F59E0B' },
     { icon: Home, label: 'home', color: '#6366F1' },
+    // Studio tab - only shows when authenticated
+    ...(authUser ? [{ icon: Sparkles, label: 'studio', color: '#06B6D4', isStudio: true }] : []),
   ];
 
   // Initialize auth state
@@ -1227,7 +1229,7 @@ export default function App() {
 
       <div className="flex gap-6 md:gap-8 mb-16 flex-wrap justify-center">
         {shortcuts.map((s) => (
-          <button key={s.label} onClick={() => handleSearch(s.label)} className="flex flex-col items-center gap-3 group" disabled={isLoading}>
+          <button key={s.label} onClick={() => s.isStudio ? setCurrentView('studio') : handleSearch(s.label)} className="flex flex-col items-center gap-3 group" disabled={isLoading}>
             <div className={`w-14 h-14 md:w-16 md:h-16 rounded-2xl ${theme.bgSecondary} border ${theme.border} flex items-center justify-center group-hover:scale-110 group-hover:shadow-lg transition-all`} style={{ boxShadow: `0 4px 20px ${s.color}20` }}>
               <s.icon size={26} style={{ color: s.color }} />
             </div>
@@ -1554,152 +1556,202 @@ export default function App() {
     </div>
   );
 
+
+
+  // Studio View - Creative Space
+  const StudioView = () => (
+    <div className={`min-h-full ${theme.bg} py-8 px-4`}>
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center">
+              <Sparkles size={20} className="text-white" />
+            </div>
+            <div>
+              <h1 className={`text-2xl font-bold ${theme.text}`}>
+                studio@{authUser?.handle || 'you'}
+              </h1>
+              <p className={`text-sm ${theme.textSecondary}`}>
+                Your Creative Space
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Pro Upgrade Banner */}
+        <div className={`mb-8 p-4 rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-800`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Star className="text-amber-500" size={24} />
+              <div>
+                <p className={`font-medium ${theme.text}`}>Upgrade to Pro</p>
+                <p className={`text-sm ${theme.textSecondary}`}>Get analytics, custom domains, and more</p>
+              </div>
+            </div>
+            <button className="px-4 py-2 bg-gradient-to-r from-amber-400 to-orange-500 text-white font-medium rounded-lg hover:from-amber-500 hover:to-orange-600 transition-colors">
+              Upgrade
+            </button>
+          </div>
+        </div>
+
+        {/* Tools Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* GSite Builder */}
+          <button className={`text-left p-6 rounded-2xl ${theme.bgSecondary} border ${theme.border} hover:border-cyan-500 hover:shadow-xl transition-all group`}>
+            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+              <Globe size={28} className="text-white" />
+            </div>
+            <h3 className={`text-lg font-semibold ${theme.text} mb-1`}>GSite Builder</h3>
+            <p className={`text-sm ${theme.textSecondary}`}>Create your professional page with blocks</p>
+          </button>
+
+          {/* Edit Profile */}
+          <button className={`text-left p-6 rounded-2xl ${theme.bgSecondary} border ${theme.border} hover:border-purple-500 hover:shadow-xl transition-all group`}>
+            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+              <User size={28} className="text-white" />
+            </div>
+            <h3 className={`text-lg font-semibold ${theme.text} mb-1`}>Edit Profile</h3>
+            <p className={`text-sm ${theme.textSecondary}`}>Photo, bio, display name, and more</p>
+          </button>
+
+          {/* Facets Manager */}
+          <button className={`text-left p-6 rounded-2xl ${theme.bgSecondary} border ${theme.border} hover:border-green-500 hover:shadow-xl transition-all group`}>
+            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+              <Package size={28} className="text-white" />
+            </div>
+            <h3 className={`text-lg font-semibold ${theme.text} mb-1`}>Facets Manager</h3>
+            <p className={`text-sm ${theme.textSecondary}`}>Create work@, friends@, pro@ identities</p>
+          </button>
+
+          {/* Analytics (Pro) */}
+          <button className={`text-left p-6 rounded-2xl ${theme.bgSecondary} border ${theme.border} opacity-60 cursor-not-allowed relative`}>
+            <div className="absolute top-4 right-4 flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-amber-400 to-orange-500 rounded-full text-xs font-bold text-white">
+              <Star size={12} fill="white" />
+              PRO
+            </div>
+            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center mb-4">
+              <Building size={28} className="text-white" />
+            </div>
+            <h3 className={`text-lg font-semibold ${theme.text} mb-1`}>Analytics</h3>
+            <p className={`text-sm ${theme.textSecondary}`}>Views, clicks, visitors, and trends</p>
+          </button>
+
+          {/* Custom Domains (Pro) */}
+          <button className={`text-left p-6 rounded-2xl ${theme.bgSecondary} border ${theme.border} opacity-60 cursor-not-allowed relative`}>
+            <div className="absolute top-4 right-4 flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-amber-400 to-orange-500 rounded-full text-xs font-bold text-white">
+              <Star size={12} fill="white" />
+              PRO
+            </div>
+            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center mb-4">
+              <ExternalLink size={28} className="text-white" />
+            </div>
+            <h3 className={`text-lg font-semibold ${theme.text} mb-1`}>Custom Domains</h3>
+            <p className={`text-sm ${theme.textSecondary}`}>Connect yourname.com to your GSite</p>
+          </button>
+
+          {/* Settings */}
+          <button className={`text-left p-6 rounded-2xl ${theme.bgSecondary} border ${theme.border} hover:border-gray-400 hover:shadow-xl transition-all group`}>
+            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-gray-500 to-slate-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+              <Menu size={28} className="text-white" />
+            </div>
+            <h3 className={`text-lg font-semibold ${theme.text} mb-1`}>Settings</h3>
+            <p className={`text-sm ${theme.textSecondary}`}>Privacy, security, and preferences</p>
+          </button>
+        </div>
+
+        {/* Create GSite CTA */}
+        <div className={`mt-8 rounded-xl border ${theme.border} ${theme.bgSecondary} p-6`}>
+          <div className="text-center py-8">
+            <Globe size={48} className={`mx-auto ${theme.textMuted} mb-4`} />
+            <p className={theme.textSecondary}>Create your GSite to start building your professional presence</p>
+            <button className="mt-4 px-6 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-medium rounded-lg hover:from-cyan-400 hover:to-blue-400 transition-colors">
+              Create GSite
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   // Sign In Modal
   const SignInModal = () => (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowSignIn(false)}>
-      <div className={`${theme.bgSecondary} rounded-3xl p-8 max-w-sm w-full shadow-2xl`} onClick={(e) => e.stopPropagation()}>
+      <div className={`${theme.bgSecondary} rounded-3xl p-8 max-w-sm w-full shadow-2xl relative border ${theme.border}`} onClick={e => e.stopPropagation()}>
+        <button onClick={() => setShowSignIn(false)} className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-full">
+          <X size={20} className={theme.textMuted} />
+        </button>
+
         <div className="text-center mb-8">
-          <PantherLogo size={80} className="mx-auto mb-4" />
-          <h2 className={`text-2xl ${theme.text} font-bold`}>Sign in to Panthera</h2>
-          <p className={`${theme.textSecondary} mt-2`}>Connect your GNS identity</p>
+          <div className="w-16 h-16 bg-cyan-100 dark:bg-cyan-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+            <User size={32} className="text-cyan-600 dark:text-cyan-400" />
+          </div>
+          <h2 className={`text-2xl font-bold ${theme.text}`}>Welcome Back</h2>
+          <p className={theme.textSecondary}>Sign in to access your digital identity</p>
         </div>
 
-        <div className="space-y-4">
-          {/* Handle input */}
-          <div>
-            <div className={`flex items-center ${theme.bgTertiary} rounded-xl px-4 py-4 border ${theme.border} focus-within:border-cyan-500`}>
-              <span className="text-cyan-500 font-semibold mr-2">@</span>
-              <input
-                type="text"
-                defaultValue={signInHandle}
-                onChange={(e) => setSignInHandle(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSignIn()}
-                placeholder="yourhandle"
-                className={`bg-transparent flex-1 ${theme.text} outline-none placeholder-gray-400`}
-                disabled={signInLoading}
-                autoFocus
-              />
-            </div>
-            {signInError && <p className="text-red-500 text-sm mt-2">{signInError}</p>}
+        {/* Use the new QRLoginModal instead of manual handle entry */}
+        <button
+          onClick={() => {
+            setShowSignIn(false);
+            setShowQRLogin(true);
+          }}
+          className="w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-medium rounded-xl hover:from-cyan-400 hover:to-blue-400 transition-all flex items-center justify-center gap-2 mb-4"
+        >
+          <Smartphone size={20} />
+          Sign in with Mobile App
+        </button>
+
+        <div className="relative my-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className={`w-full border-t ${theme.border}`}></div>
           </div>
-
-          <button
-            onClick={handleSignIn}
-            disabled={signInLoading || !signInHandle.trim()}
-            className="w-full py-4 bg-cyan-500 hover:bg-cyan-600 disabled:bg-gray-400 rounded-xl text-white font-semibold shadow-lg transition-colors flex items-center justify-center gap-2"
-          >
-            {signInLoading ? <Loader2 size={20} className="animate-spin" /> : null}
-            {signInLoading ? 'Signing in...' : 'Connect Identity'}
-          </button>
-
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center"><div className={`w-full border-t ${theme.border}`} /></div>
-            <div className="relative flex justify-center text-sm"><span className={`px-3 ${theme.bgSecondary} ${theme.textMuted}`}>or</span></div>
+          <div className="relative flex justify-center text-sm">
+            <span className={`px-2 ${theme.bgSecondary} ${theme.textMuted}`}>Or continue as guest</span>
           </div>
-
-          <button
-            onClick={() => setShowQRLogin(true)}
-            className={`w-full py-4 border-2 border-cyan-500 hover:bg-cyan-500/10 rounded-xl ${theme.text} font-medium flex items-center justify-center gap-3`}
-          >
-            <Smartphone size={20} className="text-cyan-500" />
-            Scan QR with GNS App
-          </button>
-
-          <p className={`text-center ${theme.textMuted} text-xs mt-4`}>
-            ⚠️ Demo mode: Sign in with any existing handle
-          </p>
         </div>
 
-        <p className={`text-center ${theme.textMuted} text-sm mt-8`}>
-          Don't have an @handle?{' '}
-          <button className="text-cyan-500 hover:underline font-medium" onClick={() => setShowSignIn(false)}>Get the app</button>
-        </p>
+        <button
+          onClick={() => setShowSignIn(false)}
+          className={`w-full py-3 border ${theme.border} ${theme.text} font-medium rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-all`}
+        >
+          Continue Browsing
+        </button>
       </div>
-
-      {/* QR Login Modal */}
-      <QRLoginModal
-        isOpen={showQRLogin}
-        onClose={() => setShowQRLogin(false)}
-        onSuccess={(session, messageSync) => {
-          setShowQRLogin(false);
-          setShowSignIn(false);
-          setAuthUser({
-            handle: session.handle || session.publicKey.substring(0, 8),
-            publicKey: session.publicKey,
-          });
-          wsService.connect(session.publicKey, session.sessionToken);
-
-          // NEW: Load synced conversations immediately
-          if (messageSync?.conversations) {
-            const conversations = messageSync.conversations.map(conv => ({
-              publicKey: conv.withPublicKey,
-              handle: conv.withHandle || conv.withPublicKey.substring(0, 8) + '...',
-              messages: conv.messages,
-              lastMessage: conv.messages[conv.messages.length - 1] || null,
-              unreadCount: 0,
-              _synced: true,  // Mark as synced (already decrypted)
-            }));
-            setInboxMessages(conversations);
-            console.log(`📨 Loaded ${messageSync.totalMessages} synced messages`);
-          }
-        }}
-        darkMode={darkMode}
-      />
     </div>
   );
 
   // Message Modal
   const MessageModal = () => (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowMessageModal(false)}>
-      <div className={`${theme.bgSecondary} rounded-3xl p-6 max-w-md w-full shadow-2xl`} onClick={(e) => e.stopPropagation()}>
-        {messageSent ? (
-          // Success state
-          <div className="text-center py-8">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Check size={32} className="text-green-600" />
-            </div>
-            <h3 className={`text-xl ${theme.text} font-semibold mb-2`}>Message Sent!</h3>
-            <p className={theme.textSecondary}>Your message to @{messageRecipient?.handle} was delivered</p>
-            <button onClick={() => setShowMessageModal(false)} className="mt-6 px-6 py-2 bg-cyan-500 hover:bg-cyan-600 rounded-full text-white font-medium">
-              Done
-            </button>
-          </div>
-        ) : (
-          // Compose state
-          <>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-2xl">
-                {messageRecipient?.avatar || '👤'}
-              </div>
-              <div>
-                <h3 className={`${theme.text} font-semibold`}>Message @{messageRecipient?.handle}</h3>
-                <p className={`${theme.textSecondary} text-sm`}>{messageRecipient?.name}</p>
-              </div>
-            </div>
-
-            <textarea
-              ref={messageRef}
-              placeholder="Type your message..."
-              className={`w-full h-32 p-4 ${theme.bgTertiary} ${theme.text} rounded-xl border ${theme.border} focus:border-cyan-500 outline-none resize-none placeholder-gray-400`}
-              disabled={sendingMessage}
-              autoFocus
-            />
-
-            <div className="flex justify-end gap-3 mt-4">
-              <button onClick={() => setShowMessageModal(false)} className={`px-5 py-2 ${theme.bgTertiary} ${theme.hover} rounded-full ${theme.text} font-medium`}>
-                Cancel
-              </button>
-              <button
-                onClick={handleSendMessage}
-                disabled={sendingMessage}
-                className="px-5 py-2 bg-cyan-500 hover:bg-cyan-600 disabled:bg-gray-400 rounded-full text-white font-medium flex items-center gap-2"
-              >
-                {sendingMessage ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-                Send
-              </button>
-            </div>
-          </>
-        )}
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className={`${theme.bgSecondary} rounded-2xl w-full max-w-md p-6 shadow-2xl`}>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className={`text-lg font-bold ${theme.text}`}>Send Message</h3>
+          <button onClick={() => setShowMessageModal(false)}>
+            <X className={theme.text} />
+          </button>
+        </div>
+        <div className="mb-4">
+          <p className={`text-sm ${theme.textMuted} mb-2`}>To: <span className="font-semibold text-cyan-500">@{messageRecipient}</span></p>
+          <textarea
+            ref={messageRef}
+            className={`w-full h-32 p-3 rounded-lg ${theme.bg} ${theme.text} border ${theme.border} resize-none focus:outline-none focus:ring-2 focus:ring-cyan-500`}
+            placeholder="Type your message..."
+          ></textarea>
+        </div>
+        <div className="flex justify-end gap-3">
+          <button onClick={() => setShowMessageModal(false)} className={`px-4 py-2 rounded-lg ${theme.textSecondary} hover:bg-gray-100`}>
+            Cancel
+          </button>
+          <button
+            onClick={() => handleSendMessage(messageRecipient, messageRef.current.value)}
+            disabled={sendingMessage}
+            className="px-6 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-lg font-medium hover:from-cyan-400 hover:to-blue-400 flex items-center gap-2"
+          >
+            {sendingMessage ? <Loader2 className="animate-spin" size={18} /> : <Send size={18} />}
+            Send
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -1708,43 +1760,63 @@ export default function App() {
     <div className={`h-screen flex flex-col ${theme.bg} ${theme.text}`}>
       <BrowserChrome />
       <div className="flex-1 overflow-auto">
-        {isLoading && currentView !== 'home' && currentView !== 'messages' && <LoadingView />}
+        {isLoading && currentView !== 'home' && currentView !== 'messages' && currentView !== 'studio' && <LoadingView />}
         {!isLoading && currentView === 'home' && <HomePage />}
         {!isLoading && currentView === 'profile' && currentProfile && <ProfileView profile={currentProfile} />}
         {!isLoading && currentView === 'search-results' && <SearchResultsView />}
         {!isLoading && currentView === 'not-found' && <NotFoundView />}
         {currentView === 'messages' && <MessagesView />}
+        {currentView === 'studio' && <StudioView />}
       </div>
       {showSignIn && <SignInModal />}
       {showMessageModal && <MessageModal />}
+      {showQRLogin && (
+        <QRLoginModal
+          isOpen={showQRLogin}
+          onClose={() => setShowQRLogin(false)}
+          onSuccess={(session, syncedMessages) => {
+            console.log('🎉 Login successful!', session.handle);
+            setAuthUser(session);
+            setShowQRLogin(false);
 
-      {/* Incoming Message Notification */}
+            // Initial WS connection
+            wsService.connect(session.publicKey, session.sessionToken);
+
+            // Handle synced messages if provided
+            if (syncedMessages && syncedMessages.conversations) {
+              console.log(`📦 Processing ${syncedMessages.conversations.length} synced conversations`);
+              // We could merge them into state here or just let the localStorage logic handle it on next load
+              // For now, let's force an inbox refresh
+              setTimeout(() => loadInbox(), 500);
+            }
+          }}
+          darkMode={darkMode}
+        />
+      )}
+
+      {/* Incoming Message Toast */}
       {incomingMessage && (
-        <div
-          className="fixed bottom-6 right-6 bg-white rounded-2xl shadow-2xl p-4 max-w-sm animate-slide-up border border-gray-200 cursor-pointer hover:shadow-3xl transition-shadow"
+        <div className="fixed top-20 right-4 max-w-sm w-full bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-4 border-l-4 border-cyan-500 animate-slide-in pointer-events-auto z-50 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors"
           onClick={() => {
-            // Open messages and select conversation
+            // Open conversation
             setIncomingMessage(null);
             openMessages();
-            if (incomingMessage.fromPk) {
-              loadConversation(incomingMessage.fromPk, incomingMessage.from);
-            }
+            loadConversation(incomingMessage.fromPk, incomingMessage.from);
           }}
         >
           <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-400 to-cyan-600 flex items-center justify-center flex-shrink-0">
-              <MessageCircle size={20} className="text-white" />
+            <div className="w-10 h-10 rounded-full bg-cyan-100 flex items-center justify-center flex-shrink-0">
+              <MessageCircle size={20} className="text-cyan-600" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="font-semibold text-gray-900">{incomingMessage.from}</div>
-              <div className="text-gray-600 text-sm mt-1 break-words">{incomingMessage.text}</div>
+              <div className="flex justify-between items-start">
+                <h4 className="font-bold text-gray-900 dark:text-white truncate">@{incomingMessage.from}</h4>
+                <span className="text-xs text-gray-400">now</span>
+              </div>
+              <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-2 mt-1">
+                {incomingMessage.text}
+              </p>
             </div>
-            <button
-              onClick={(e) => { e.stopPropagation(); setIncomingMessage(null); }}
-              className="text-gray-400 hover:text-gray-600"
-            >
-              <X size={18} />
-            </button>
           </div>
         </div>
       )}
