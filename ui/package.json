@@ -24,7 +24,7 @@
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.20.0",
     "serve": "^14.2.5",
-    "zustand": "^4.4.0"
+    "zustand": "^5.0.9"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.9.6",
