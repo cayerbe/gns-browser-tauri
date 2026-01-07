@@ -173,7 +173,6 @@ interface SessionData {
 }
 
 function QRLoginStep({
-  onSuccess,
   onBack
 }: {
   onSuccess: () => void;
@@ -249,7 +248,7 @@ function QRLoginStep({
           clearInterval(timerRef.current!);
           setStatus('approved');
 
-          // Store session data
+          // ✅ Store session data EXACTLY as requested
           if (data.data.handle) {
             localStorage.setItem('gns_handle', data.data.handle);
           }
@@ -260,10 +259,20 @@ function QRLoginStep({
             localStorage.setItem('gns_session_token', data.data.sessionToken);
           }
 
-          // Small delay then complete
+          // Store encryption key if provided (for dual encryption)
+          if (data.data.encryptionKey) {
+            // Note: The app might expect a different key for this depending on implementation
+            // keeping it safe for now, but usually web doesn't hold the private key 
+            // so this might be the public encryption key
+            // sessionStorage.setItem('gns_encryption_key', data.data.encryptionKey);
+          }
+
+          console.log('Session approved! Reloading...');
+
+          // Force reload to re-init App.tsx with identity
           setTimeout(() => {
-            onSuccess();
-          }, 1500);
+            window.location.reload();
+          }, 500);
         }
       } catch (err) {
         console.error('Poll error:', err);

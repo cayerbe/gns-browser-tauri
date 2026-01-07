@@ -17,7 +17,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
-import { getEncryptionKey, signString } from '../lib/tauri';
+import { getEncryptionKey, signString, getIdentity } from '../lib/tauri';
 
 // ===========================================
 // TYPES
@@ -216,23 +216,26 @@ export function BrowserPairingScreen() {
     setIsProcessing(true);
     setError(null);
 
-    const handle = localStorage.getItem('gns_handle');
-    const publicKey = localStorage.getItem('gns_public_key');
-
-    if (!handle || !publicKey) {
-      setError('Identity not found. Please set up your identity first.');
-      setIsProcessing(false);
-      return;
-    }
-
     try {
-      // 1. Get encryption key for secure channel
+      // 1. Get identity (backend source of truth)
+      const identity = await getIdentity();
+      const handle = identity?.handle;
+      const publicKey = identity?.publicKey;
+
+      if (!handle || !publicKey) {
+        setError('Identity not found. Please set up your identity first.');
+        setStep('error');
+        setIsProcessing(false);
+        return;
+      }
+
+      // 2. Get encryption key for secure channel
       const encryptionKey = await getEncryptionKey();
       if (!encryptionKey) {
         throw new Error('Encryption key not found. Please ensure wallet is initialized.');
       }
 
-      // 2. Prepare data to sign
+      // 3. Prepare data to sign
       const signedData = {
         action: 'approve',
         challenge: request.challenge,
@@ -240,7 +243,7 @@ export function BrowserPairingScreen() {
         sessionId: request.sessionId,
       };
 
-      // 3. Sign the data
+      // 4. Sign the data
       const canonicalString = canonicalJson(signedData);
       const signature = await signString(canonicalString);
 
@@ -248,7 +251,7 @@ export function BrowserPairingScreen() {
         throw new Error('Failed to sign approval request.');
       }
 
-      // 4. Send approval
+      // 5. Send approval
       const payload = {
         sessionId: request.sessionId,
         publicKey,
@@ -258,7 +261,6 @@ export function BrowserPairingScreen() {
           approvedAt: new Date().toISOString(),
         },
         encryptionKey,
-        // messageSync handled separately later if needed
       };
 
       const result = await approveSession(payload);

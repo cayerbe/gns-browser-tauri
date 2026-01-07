@@ -3,11 +3,24 @@
  * 
  * This library provides React hooks for all Tauri commands,
  * with proper TypeScript types and error handling.
+ * 
+ * WEB FALLBACK: When running in a regular browser (not Tauri),
+ * functions fall back to localStorage or sensible defaults.
  */
 
 import { invoke } from '@tauri-apps/api/core';
 import { listen, UnlistenFn } from '@tauri-apps/api/event';
 import { useEffect, useState, useCallback } from 'react';
+
+// ==================== Platform Detection ====================
+
+export function isTauriApp(): boolean {
+  // Check for the specific Tauri IPC internal object for v2, or just global presence
+  return typeof window !== 'undefined' &&
+    (!!(window as any).__TAURI_INTERNALS__ || !!(window as any).__TAURI__);
+}
+
+
 
 // ==================== Types ====================
 
@@ -138,17 +151,42 @@ export interface CommandResult<T> {
 // ==================== Identity Commands ====================
 
 export async function getPublicKey(): Promise<string | null> {
-  return invoke<string | null>('get_public_key');
+  const fallback = () => localStorage.getItem('gns_public_key');
+
+  if (!isTauriApp()) {
+    return fallback();
+  }
+  try {
+    return await invoke<string | null>('get_public_key');
+  } catch (e) {
+    console.warn('Tauri invoke failed, using fallback:', e);
+    return fallback();
+  }
 }
 
 export async function getEncryptionKey(): Promise<string | null> {
-  return invoke<string | null>('get_encryption_key');
+  const fallback = () => localStorage.getItem('gns_encryption_key');
+
+  if (!isTauriApp()) {
+    return fallback();
+  }
+  try {
+    return await invoke<string | null>('get_encryption_key');
+  } catch (e) {
+    console.warn('Tauri invoke failed, using fallback:', e);
+    return fallback();
+  }
 }
 
 export async function getIdentity(): Promise<{ handle?: string; publicKey?: string } | null> {
   try {
+    if (!isTauriApp()) {
+      const handle = localStorage.getItem('gns_handle');
+      const publicKey = localStorage.getItem('gns_public_key');
+      return { handle: handle || undefined, publicKey: publicKey || undefined };
+    }
     const publicKey = await getPublicKey();
-    const handle = localStorage.getItem('gns_handle');
+    const handle = await getCurrentHandle();
     return { handle: handle || undefined, publicKey: publicKey || undefined };
   } catch (e) {
     console.error('getIdentity error:', e);
@@ -157,48 +195,116 @@ export async function getIdentity(): Promise<{ handle?: string; publicKey?: stri
 }
 
 export async function getCurrentHandle(): Promise<string | null> {
-  return invoke<string | null>('get_current_handle');
+  const fallback = () => localStorage.getItem('gns_handle');
+
+  if (!isTauriApp()) {
+    return fallback();
+  }
+  try {
+    return await invoke<string | null>('get_current_handle');
+  } catch (e) {
+    console.warn('Tauri invoke failed, using fallback:', e);
+    return fallback();
+  }
 }
 
 export async function hasIdentity(): Promise<boolean> {
-  return invoke<boolean>('has_identity');
+  const fallback = () => !!localStorage.getItem('gns_public_key');
+
+  if (!isTauriApp()) {
+    return fallback();
+  }
+  try {
+    return await invoke<boolean>('has_identity');
+  } catch (e) {
+    console.warn('Tauri invoke failed, using fallback:', e);
+    return fallback();
+  }
 }
 
 export async function generateIdentity(): Promise<IdentityInfo> {
+  if (!isTauriApp()) {
+    throw new Error('Cannot generate identity in web browser. Use mobile app.');
+  }
   return invoke<IdentityInfo>('generate_identity');
 }
 
 export async function importIdentity(privateKeyHex: string): Promise<IdentityInfo> {
+  if (!isTauriApp()) {
+    throw new Error('Cannot import identity in web browser. Use mobile app.');
+  }
   return invoke<IdentityInfo>('import_identity', { privateKeyHex });
 }
 
 export async function exportIdentityBackup(): Promise<IdentityBackup> {
+  if (!isTauriApp()) {
+    throw new Error('Cannot export identity from web browser. Use mobile app.');
+  }
   return invoke<IdentityBackup>('export_identity_backup');
 }
 
 export async function deleteIdentity(): Promise<void> {
+  if (!isTauriApp()) {
+    // Web: clear localStorage
+    localStorage.removeItem('gns_handle');
+    localStorage.removeItem('gns_public_key');
+    localStorage.removeItem('gns_session_token');
+    localStorage.removeItem('gns_encryption_key');
+    return;
+  }
   return invoke('delete_identity');
 }
 
 export async function signString(message: string): Promise<string | null> {
+  if (!isTauriApp()) {
+    throw new Error('Cannot sign in web browser. Use mobile app to approve.');
+  }
   return invoke<string | null>('sign_string', { message });
 }
 
 // ==================== Handle Commands ====================
 
 export async function resolveHandle(handle: string): Promise<HandleInfo | null> {
+  // This can work in web via API call
+  if (!isTauriApp()) {
+    try {
+      const response = await fetch(`https://gns-browser-production.up.railway.app/handles/${handle}`);
+      const data = await response.json();
+      if (data.success && data.data) {
+        return data.data;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }
   return invoke<HandleInfo | null>('resolve_handle', { handle });
 }
 
 export async function checkHandleAvailable(handle: string): Promise<HandleAvailability> {
+  if (!isTauriApp()) {
+    try {
+      const response = await fetch(`https://gns-browser-production.up.railway.app/handles/${handle}/available`);
+      const data = await response.json();
+      return data.data || { handle, available: false, reason: 'Unknown' };
+    } catch {
+      return { handle, available: false, reason: 'Network error' };
+    }
+  }
   return invoke<HandleAvailability>('check_handle_available', { handle });
 }
 
 export async function claimHandle(handle: string): Promise<ClaimResult> {
+  if (!isTauriApp()) {
+    throw new Error('Cannot claim handle from web browser. Use mobile app.');
+  }
   return invoke<ClaimResult>('claim_handle', { handle });
 }
 
 export async function publishIdentity(): Promise<CommandResult<boolean>> {
+  if (!isTauriApp()) {
+    throw new Error('Cannot publish identity from web browser. Use mobile app.');
+  }
   return invoke<CommandResult<boolean>>('publish_identity');
 }
 
@@ -212,6 +318,10 @@ export async function sendMessage(params: {
   threadId?: string;
   replyToId?: string;
 }): Promise<SendResult> {
+  if (!isTauriApp()) {
+    // Web messaging via API (if implemented)
+    throw new Error('Web messaging not yet implemented');
+  }
   return invoke<SendResult>('send_message', params);
 }
 
@@ -221,6 +331,9 @@ export async function addReaction(params: {
   recipientPublicKey: string;
   recipientHandle?: string;
 }): Promise<void> {
+  if (!isTauriApp()) {
+    throw new Error('Reactions not available in web browser');
+  }
   return invoke('add_reaction', params);
 }
 
@@ -232,6 +345,9 @@ export async function saveSentEmailMessage(params: {
   gatewayPublicKey: string;
   threadId?: string;
 }): Promise<SendResult> {
+  if (!isTauriApp()) {
+    throw new Error('Email not available in web browser');
+  }
   return invoke<SendResult>('save_sent_email_message', {
     ...params,
     thread_id: params.threadId
@@ -242,10 +358,17 @@ export async function getThreads(params?: {
   includeArchived?: boolean;
   limit?: number;
 }): Promise<ThreadPreview[]> {
+  if (!isTauriApp()) {
+    // Web: return empty array (no local message storage)
+    return [];
+  }
   return invoke<ThreadPreview[]>('get_threads', params ?? {});
 }
 
 export async function getThread(threadId: string): Promise<ThreadPreview | null> {
+  if (!isTauriApp()) {
+    return null;
+  }
   return invoke<ThreadPreview | null>('get_thread', { threadId });
 }
 
@@ -254,64 +377,148 @@ export async function getMessages(params: {
   limit?: number;
   beforeId?: string;
 }): Promise<Message[]> {
+  if (!isTauriApp()) {
+    return [];
+  }
   return invoke<Message[]>('get_messages', params);
 }
 
 export async function markThreadRead(threadId: string): Promise<void> {
+  if (!isTauriApp()) {
+    return;
+  }
   return invoke('mark_thread_read', { threadId });
 }
 
 export async function deleteThread(threadId: string): Promise<void> {
+  if (!isTauriApp()) {
+    return;
+  }
   return invoke('delete_thread', { threadId });
 }
 
 export async function deleteMessage(messageId: string): Promise<void> {
+  if (!isTauriApp()) {
+    return;
+  }
   return invoke('delete_message', { messageId });
 }
 
 // ==================== Breadcrumb Commands ====================
 
 export async function getBreadcrumbCount(): Promise<number> {
+  if (!isTauriApp()) {
+    return 0; // Web can't collect breadcrumbs
+  }
   return invoke<number>('get_breadcrumb_count');
 }
 
 export async function listBreadcrumbs(limit = 50, offset = 0): Promise<Breadcrumb[]> {
+  if (!isTauriApp()) {
+    return []; // Web has no breadcrumbs
+  }
   return invoke<Breadcrumb[]>('list_breadcrumbs', { limit, offset });
 }
 
 export async function restoreBreadcrumbs(): Promise<number> {
+  if (!isTauriApp()) {
+    return 0;
+  }
   return invoke<number>('restore_breadcrumbs');
 }
 
 export async function getBreadcrumbStatus(): Promise<BreadcrumbStatus> {
-  return invoke<BreadcrumbStatus>('get_breadcrumb_status');
+  const fallback = (): BreadcrumbStatus => {
+    const handle = localStorage.getItem('gns_handle');
+    return {
+      count: 0,
+      target: 100,
+      progress_percent: 0,
+      unique_locations: 0,
+      collection_strategy: 'disabled',
+      collection_enabled: false,
+      handle_claimed: !!handle,
+    };
+  };
+
+  if (!isTauriApp()) {
+    return fallback();
+  }
+  try {
+    return await invoke<BreadcrumbStatus>('get_breadcrumb_status');
+  } catch (e) {
+    console.warn('Tauri invoke failed, using fallback:', e);
+    return fallback();
+  }
 }
 
 export async function setCollectionEnabled(enabled: boolean): Promise<void> {
+  if (!isTauriApp()) {
+    console.warn('Breadcrumb collection not available in web browser');
+    return;
+  }
   return invoke('set_collection_enabled', { enabled });
 }
 
 // ==================== Network Commands ====================
 
 export async function getConnectionStatus(): Promise<ConnectionStatus> {
-  return invoke<ConnectionStatus>('get_connection_status');
+  const fallback = (): ConnectionStatus => ({
+    relay_connected: true,
+    relay_url: 'https://gns-browser-production.up.railway.app',
+    last_message_at: Date.now(),
+    reconnect_attempts: 0,
+  });
+
+  if (!isTauriApp()) {
+    return fallback();
+  }
+  try {
+    return await invoke<ConnectionStatus>('get_connection_status');
+  } catch (e) {
+    console.warn('Tauri invoke failed, using fallback:', e);
+    return fallback();
+  }
 }
 
 export async function reconnect(): Promise<void> {
+  if (!isTauriApp()) {
+    return; // No-op in web
+  }
   return invoke('reconnect');
 }
 
 // ==================== Utility Commands ====================
 
 export async function getAppVersion(): Promise<AppVersion> {
+  if (!isTauriApp()) {
+    return {
+      version: '1.0.0-web',
+      build_date: new Date().toISOString(),
+      git_hash: 'web',
+      platform: 'web',
+      arch: 'browser',
+    };
+  }
   return invoke<AppVersion>('get_app_version');
 }
 
 export async function openExternalUrl(url: string): Promise<void> {
+  if (!isTauriApp()) {
+    window.open(url, '_blank');
+    return;
+  }
   return invoke('open_external_url', { url });
 }
 
 export async function getOfflineStatus(): Promise<OfflineStatus> {
+  if (!isTauriApp()) {
+    return {
+      is_online: navigator.onLine,
+      breadcrumb_count: 0,
+      pending_messages: 0,
+    };
+  }
   return invoke<OfflineStatus>('get_offline_status');
 }
 
@@ -363,30 +570,60 @@ export interface PaymentHistoryItem {
 // ==================== Stellar Commands ====================
 
 export async function getStellarAddress(): Promise<string> {
+  if (!isTauriApp()) {
+    return localStorage.getItem('gns_stellar_address') || '';
+  }
   return invoke<string>('get_stellar_address');
 }
 
 export async function getStellarBalances(): Promise<StellarBalances> {
+  if (!isTauriApp()) {
+    // Web fallback - empty balances
+    return {
+      stellar_address: '',
+      account_exists: false,
+      xlm_balance: 0,
+      gns_balance: 0,
+      has_trustline: false,
+      claimable_gns: [],
+      use_testnet: false,
+    };
+  }
   return invoke<StellarBalances>('get_stellar_balances');
 }
 
 export async function claimGnsTokens(): Promise<TransactionResponse> {
+  if (!isTauriApp()) {
+    return { success: false, hash: null, error: 'Not available in web browser', message: null };
+  }
   return invoke<TransactionResponse>('claim_gns_tokens');
 }
 
 export async function createGnsTrustline(): Promise<TransactionResponse> {
+  if (!isTauriApp()) {
+    return { success: false, hash: null, error: 'Not available in web browser', message: null };
+  }
   return invoke<TransactionResponse>('create_gns_trustline');
 }
 
 export async function sendGns(request: SendGnsRequest): Promise<TransactionResponse> {
+  if (!isTauriApp()) {
+    return { success: false, hash: null, error: 'Not available in web browser', message: null };
+  }
   return invoke<TransactionResponse>('send_gns', { request });
 }
 
 export async function fundTestnetAccount(): Promise<TransactionResponse> {
+  if (!isTauriApp()) {
+    return { success: false, hash: null, error: 'Not available in web browser', message: null };
+  }
   return invoke<TransactionResponse>('fund_testnet_account');
 }
 
 export async function getPaymentHistory(limit?: number): Promise<PaymentHistoryItem[]> {
+  if (!isTauriApp()) {
+    return [];
+  }
   return invoke<PaymentHistoryItem[]>('get_payment_history', { limit });
 }
 
@@ -450,9 +687,11 @@ export function useBreadcrumbStatus() {
 
   useEffect(() => {
     refresh();
-    // Refresh every 30 seconds
-    const interval = setInterval(refresh, 30000);
-    return () => clearInterval(interval);
+    // Refresh every 30 seconds (only in Tauri app)
+    if (isTauriApp()) {
+      const interval = setInterval(refresh, 30000);
+      return () => clearInterval(interval);
+    }
   }, [refresh]);
 
   return { status, loading, error, refresh };
@@ -475,8 +714,12 @@ export function useConnectionStatus() {
     };
 
     fetchStatus();
-    const interval = setInterval(fetchStatus, 5000);
-    return () => clearInterval(interval);
+
+    // Only poll in Tauri app
+    if (isTauriApp()) {
+      const interval = setInterval(fetchStatus, 5000);
+      return () => clearInterval(interval);
+    }
   }, []);
 
   return status;
@@ -490,6 +733,10 @@ export function useTauriEvent<T>(
   handler: (payload: T) => void
 ) {
   useEffect(() => {
+    if (!isTauriApp()) {
+      return; // No Tauri events in web
+    }
+
     let unlisten: UnlistenFn | undefined;
 
     const setup = async () => {
@@ -536,7 +783,7 @@ export function useThreads() {
     refresh();
   }, [refresh]);
 
-  // Listen for new messages to refresh
+  // Listen for new messages to refresh (only in Tauri)
   useTauriEvent('new_message', () => {
     refresh();
   });

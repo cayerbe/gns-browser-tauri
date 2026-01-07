@@ -11,7 +11,7 @@ import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { GSiteViewer, GSiteCreator } from './components/gsite';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { hasIdentity } from './lib/tauri';
+import { hasIdentity, getCurrentHandle, getBreadcrumbStatus } from './lib/tauri';
 import { profileToGSite } from './lib/gsite';
 import { GSite } from './types/gsite';
 
@@ -111,8 +111,7 @@ function AppContent() {
 
   const loadCollectionState = async () => {
     try {
-      const { invoke } = await import('@tauri-apps/api/core');
-      const status = await invoke<any>('get_breadcrumb_status');
+      const status = await getBreadcrumbStatus();
       setCollectionEnabled(status.collection_enabled);
     } catch (err) {
       console.error('Failed to load collection state:', err);
@@ -126,8 +125,7 @@ function AppContent() {
       if (exists) {
         // Sync handle to local storage if missing or stale
         try {
-          const { invoke } = await import('@tauri-apps/api/core');
-          const handle = await invoke<string | null>('get_current_handle');
+          const handle = await getCurrentHandle();
           if (handle) {
             console.log('Synced identity handle:', handle);
             localStorage.setItem('gns_handle', handle);

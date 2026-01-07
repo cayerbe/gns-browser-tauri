@@ -288,7 +288,7 @@ router.post('/approve', async (req: Request, res: Response) => {
     // Update session with approval data
     session.status = 'approved';
     session.publicKey = publicKey.toLowerCase();
-    session.handle = alias?.handle || undefined;
+    session.handle = alias?.handle || identity.handle || undefined;
     session.sessionToken = sessionToken;
     session.approvedAt = Date.now();
 
