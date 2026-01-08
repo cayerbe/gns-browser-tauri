@@ -79,7 +79,10 @@ pub async fn send_message(
 
     // Store locally
     let mut db = state.database.lock().await;
-    db.save_sent_message(&envelope, &payload_bytes, recipient_handle.as_deref(), reply_to_id)
+    // Sanitize handle (remove leading @ if present) to avoid duplication
+    let clean_handle = recipient_handle.as_deref().map(|h| h.trim_start_matches('@'));
+    
+    db.save_sent_message(&envelope, &payload_bytes, clean_handle, reply_to_id)
         .map_err(|e| format!("Failed to save locally: {}", e))?;
 
     Ok(SendResult {
@@ -304,7 +307,8 @@ pub async fn resolve_handle(
     Ok(info.map(|i| HandleInfo {
         public_key: i.public_key,
         encryption_key: i.encryption_key,
-        handle: i.handle,
+        // Ensure handle is clean (no @ prefix) so UI doesn't double it
+        handle: i.handle.map(|h| h.trim_start_matches('@').to_string()),
         display_name: i.display_name,
         avatar_url: i.avatar_url,
         is_verified: i.is_verified,

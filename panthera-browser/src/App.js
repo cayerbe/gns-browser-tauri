@@ -107,6 +107,28 @@ const AppContent = () => {
 
     const unsubMessageSynced = wsService.on('messageSynced', (data) => {
       console.log('📩 Message synced from mobile:', data.messageId);
+
+      // Save decrypted text to localStorage so loadConversation can find it
+      if (data.decryptedText && data.conversationWith) {
+        try {
+          const syncedKey = `gns_synced_${data.conversationWith.toLowerCase()}`;
+          const syncedMessages = JSON.parse(localStorage.getItem(syncedKey) || '[]');
+
+          // Avoid duplicates
+          if (!syncedMessages.find(m => m.id === data.messageId)) {
+            syncedMessages.push({
+              id: data.messageId,
+              text: data.decryptedText,
+              timestamp: data.timestamp || Date.now(),
+              direction: data.direction
+            });
+            localStorage.setItem(syncedKey, JSON.stringify(syncedMessages));
+          }
+        } catch (e) {
+          console.error('Failed to save synced message:', e);
+        }
+      }
+
       if (selectedConversation && data.conversationWith?.toLowerCase() === selectedConversation.publicKey?.toLowerCase()) {
         loadConversation(selectedConversation.publicKey, selectedConversation.handle);
       }

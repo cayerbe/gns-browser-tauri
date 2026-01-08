@@ -68,7 +68,8 @@ export function ConversationScreen() {
     const setupListener = async () => {
       try {
         const { listen } = await import('@tauri-apps/api/event');
-        unlisten = await listen<MessageType>('new_message', (event) => {
+
+        const unlistenNewMsg = await listen<MessageType>('new_message', (event) => {
           console.log('New message received:', event.payload);
 
           // Only add if it belongs to this thread
@@ -80,6 +81,41 @@ export function ConversationScreen() {
             });
           }
         });
+
+        const unlistenSynced = await listen<any>('message_synced', (event) => {
+          console.log('Message synced from browser:', event.payload);
+          // Payload: { id, to_pk, text, timestamp, is_outgoing }
+          // We need to match this to the current thread.
+          // If current thread is with `to_pk`, then yes.
+          // OR if threadId matches (but payload doesn't have threadId, save_browser_sent_message calculated it).
+          // We can check if `recipientPublicKey` matches `to_pk`.
+
+          if (event.payload.to_pk === recipientPublicKey) {
+            const newMessage: MessageType = {
+              id: event.payload.id,
+              thread_id: threadId || '',
+              from_public_key: 'me', // It's from us
+              payload_type: 'text/plain',
+              payload: { text: event.payload.text },
+              timestamp: event.payload.timestamp,
+              is_outgoing: true,
+              status: 'sent', // Synced means it was sent
+              reply_to_id: undefined, // Browser sync might not include this yet
+              reactions: []
+            };
+
+            setMessages((prev) => {
+              if (prev.some(m => m.id === newMessage.id)) return prev;
+              return [...prev, newMessage];
+            });
+          }
+        });
+
+        unlisten = () => {
+          unlistenNewMsg();
+          unlistenSynced();
+        };
+
       } catch (e) {
         console.error('Failed to setup event listener:', e);
       }
@@ -90,7 +126,7 @@ export function ConversationScreen() {
     return () => {
       if (unlisten) unlisten();
     };
-  }, [threadId]);
+  }, [threadId, recipientPublicKey]);
 
   const loadMessages = async () => {
     if (!threadId) return;

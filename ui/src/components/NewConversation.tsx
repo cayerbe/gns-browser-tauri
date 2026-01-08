@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Search, Loader2, User } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
+import { getPublicKey } from '../lib/tauri';
 
 interface HandleInfo {
   public_key: string;
@@ -57,12 +58,23 @@ export function NewConversation() {
     }
   };
 
-  const startConversation = () => {
+  const startConversation = async () => {
     if (!result) return;
 
-    // Create a thread ID based on public keys (deterministic)
-    // For now, just navigate to conversation with the public key
-    const threadId = `direct_${result.public_key.slice(0, 16)}`;
+    // Get local identity to form canonical thread ID
+    const myPk = await getPublicKey();
+    if (!myPk) {
+      setError("Could not get local public key");
+      return;
+    }
+
+    // Create a thread ID based on sorted public keys (deterministic)
+    // Must match Rust backend format: direct_{sorted_keys}[0..32]
+    // Ensure lowercase to match Rust hex output and sort order
+    const keys = [myPk.toLowerCase(), result.public_key.toLowerCase()].sort();
+    const joined = keys.join('_');
+    const threadId = `direct_${joined.substring(0, 32)}`;
+
     navigate(`/messages/${threadId}`, {
       state: {
         recipientPublicKey: result.public_key,
