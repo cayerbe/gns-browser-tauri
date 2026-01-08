@@ -1,249 +1,159 @@
-// ===========================================
-// GNS BROWSER - EMAIL LIST COMPONENT
-// ===========================================
-
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { EmailApi } from '../../lib/email';
+import { useState, useEffect } from 'react';
 import { useTauriEvent } from '../../lib/tauri';
+import { Search, PenLine, Star } from 'lucide-react';
+import clsx from 'clsx';
+import { format } from 'date-fns';
 import { EmailThread } from '../../types/email';
-import {
-  Mail,
-  Star,
-  Paperclip,
-  Trash2,
-  RefreshCw,
-  PenSquare,
-  Inbox,
-  Lock,
-  Loader2
-} from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
-import { cn } from '../../lib/utils';
+import { EmailApi } from '../../lib/email';
 
 interface EmailListProps {
   onSelectThread: (thread: EmailThread) => void;
   onCompose: () => void;
   selectedThreadId?: string;
+  className?: string;
 }
 
-export function EmailList({ onSelectThread, onCompose, selectedThreadId }: EmailListProps) {
-  const [filter, setFilter] = useState<'all' | 'unread' | 'starred'>('all');
-  const queryClient = useQueryClient();
+export function EmailList({ onSelectThread, onCompose, selectedThreadId, className }: EmailListProps) {
+  const [threads, setThreads] = useState<EmailThread[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const { data, isLoading, refetch } = useQuery({
-    queryKey: ['email-threads', filter],
-    queryFn: () => EmailApi.getThreads({ limit: 50, filter }),
-    refetchInterval: 60000, // Poll every minute
-  });
+  const fetchThreads = async () => {
+    try {
+      setLoading(true);
+      const data = await EmailApi.getThreads();
+      setThreads(data.threads);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  // Listener for new messages
+  useEffect(() => {
+    fetchThreads();
+  }, []);
+
+  // Listen for new emails to refresh list
   useTauriEvent('new_message', () => {
-    console.log('[EmailList] New message received, refining...');
-    queryClient.invalidateQueries({ queryKey: ['email-threads'] });
+    fetchThreads();
   });
 
-  const toggleStarMutation = useMutation({
-    mutationFn: (threadId: string) => EmailApi.toggleStar(threadId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['email-threads'] });
-    },
-  });
-
-  const deleteThreadMutation = useMutation({
-    mutationFn: (threadId: string) => EmailApi.deleteThread(threadId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['email-threads'] });
-    },
-  });
-
-  const threads = data?.threads || [];
-  const stats = data?.stats;
+  // Filter threads
+  const filteredThreads = threads.filter(t =>
+    t.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    t.snippet.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    t.participants.some(p => p.address.includes(searchQuery.toLowerCase()) || p.name?.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
 
   return (
-    <div className="flex flex-col h-full bg-background">
+    <div className={clsx("flex flex-col h-full border-r border-border bg-background w-[350px] min-w-[300px]", className)}>
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-border bg-surface/50">
-        <div className="flex items-center gap-2">
-          <Mail className="w-5 h-5 text-indigo-400" />
-          <h2 className="text-lg font-semibold text-text-primary">Email</h2>
-          {stats && stats.unreadCount > 0 && (
-            <span className="bg-indigo-600 text-white text-xs px-2 py-0.5 rounded-full">
-              {stats.unreadCount}
-            </span>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => refetch()}
-            className="p-2 hover:bg-white/10 rounded-full transition-colors"
-            title="Refresh"
-          >
-            <RefreshCw className={cn("w-4 h-4 text-text-muted", isLoading && "animate-spin")} />
-          </button>
+      <div className="p-4 border-b border-border flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-bold tracking-tight">Inbox</h2>
           <button
             onClick={onCompose}
-            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-full text-sm font-medium transition-colors"
+            className="p-2 rounded-full bg-primary text-primary-foreground hover:opacity-90 transition-opacity shadow-sm"
+            title="Compose"
           >
-            <PenSquare className="w-4 h-4" />
-            Compose
+            <PenLine size={18} />
           </button>
+        </div>
+
+        <div className="relative">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="Search mail"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-4 py-2 bg-muted/50 border border-input rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+          />
         </div>
       </div>
 
-      {/* Filter Tabs */}
-      <div className="flex gap-1 p-2 border-b border-border bg-surface/30">
-        {(['all', 'unread', 'starred'] as const).map((f) => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={cn(
-              "px-3 py-1.5 rounded-lg text-sm font-medium transition-colors capitalize",
-              filter === f
-                ? "bg-indigo-600 text-white"
-                : "text-text-muted hover:bg-surface-light"
-            )}
-          >
-            {f}
-          </button>
-        ))}
-      </div>
-
-      {/* Thread List */}
+      {/* List */}
       <div className="flex-1 overflow-y-auto">
-        {isLoading && !threads.length ? (
-          <div className="flex flex-col items-center justify-center h-64 text-text-muted">
-            <Loader2 className="w-8 h-8 animate-spin mb-2" />
-            Loading emails...
+        {error && (
+          <div className="p-4 bg-red-500/10 text-red-500 text-sm border-b border-red-500/20">
+            Error: {error}
           </div>
-        ) : threads.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-64 text-slate-500">
-            <Inbox className="w-12 h-12 mb-3 opacity-50" />
-            <p>No emails yet</p>
-            <p className="text-sm mt-1">Your email address is @handle@gcrumbs.com</p>
+        )}
+        {loading ? (
+          <div className="flex flex-col items-center justify-center h-40 text-muted-foreground">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mb-2"></div>
+            <span className="text-sm">Loading...</span>
+          </div>
+        ) : filteredThreads.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-60 text-muted-foreground p-8 text-center">
+            <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
+              <Search size={24} className="opacity-50" />
+            </div>
+            <p className="text-sm">No emails found</p>
           </div>
         ) : (
-          <div className="divide-y divide-border">
-            {threads.map((thread) => (
-              <EmailThreadRow
-                key={thread.id}
-                thread={thread}
-                isSelected={thread.id === selectedThreadId}
-                onSelect={() => onSelectThread(thread)}
-                onToggleStar={(e) => {
-                  e.stopPropagation();
-                  toggleStarMutation.mutate(thread.id);
-                }}
-                onDelete={(e) => {
-                  e.stopPropagation();
-                  if (confirm('Delete this conversation?')) {
-                    deleteThreadMutation.mutate(thread.id);
-                  }
-                }}
-              />
-            ))}
+          <div>
+            {filteredThreads.map(thread => {
+              // Parse date
+              const date = new Date(thread.lastMessageAt || Date.now());
+              const dateStr = format(date, 'MMM d');
+              const isSelected = selectedThreadId === thread.id;
+
+              const sender = thread.participants.find(p => !p.address.includes('gcrumbs.com')) || thread.participants[0] || { name: 'Unknown', address: '??' };
+              const senderName = sender.name || sender.address.split('@')[0];
+
+              return (
+                <div
+                  key={thread.id}
+                  onClick={() => onSelectThread(thread)}
+                  className={clsx(
+                    "relative p-4 cursor-pointer border-b border-border/40 hover:bg-muted/40 transition-colors group",
+                    isSelected ? "bg-accent/50 hover:bg-accent/60 before:absolute before:left-0 before:top-0 before:bottom-0 before:w-1 before:bg-primary" : "",
+                    thread.unreadCount > 0 ? "bg-background" : "bg-background/50 opacity-90"
+                  )}
+                >
+                  <div className="flex justify-between items-baseline mb-1">
+                    <span className={clsx(
+                      "text-sm truncate max-w-[70%]",
+                      thread.unreadCount > 0 ? "font-bold text-foreground" : "font-medium text-foreground/80"
+                    )}>
+                      {senderName}
+                    </span>
+                    <span className={clsx(
+                      "text-xs whitespace-nowrap",
+                      thread.unreadCount > 0 ? "text-primary font-medium" : "text-muted-foreground"
+                    )}>
+                      {dateStr}
+                    </span>
+                  </div>
+
+                  <div className={clsx(
+                    "text-sm truncate mb-1",
+                    thread.unreadCount > 0 ? "text-foreground font-semibold" : "text-muted-foreground"
+                  )}>
+                    {thread.subject || '(No subject)'}
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-muted-foreground line-clamp-1 flex-1 pr-2">
+                      {thread.snippet}
+                    </p>
+                    {thread.isStarred && (
+                      <Star size={12} className="text-yellow-500 fill-yellow-500 shrink-0" />
+                    )}
+                  </div>
+
+                  {thread.unreadCount > 0 && (
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-blue-500 rounded-full shadow-sm"></div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
-    </div>
-  );
-}
-
-// ===========================================
-// EMAIL THREAD ROW
-// ===========================================
-
-interface EmailThreadRowProps {
-  thread: EmailThread;
-  isSelected: boolean;
-  onSelect: () => void;
-  onToggleStar: (e: React.MouseEvent) => void;
-  onDelete: (e: React.MouseEvent) => void;
-}
-
-function EmailThreadRow({ thread, isSelected, onSelect, onToggleStar, onDelete }: EmailThreadRowProps) {
-  const timeAgo = formatDistanceToNow(new Date(thread.lastMessageAt), { addSuffix: true });
-  const isUnread = thread.unreadCount > 0;
-
-  // Get participant display names
-  const participantNames = thread.participants
-    .map(p => p.name || p.handle || p.address.split('@')[0])
-    .join(', ');
-
-  return (
-    <div
-      onClick={onSelect}
-      className={cn(
-        "flex items-start gap-3 p-4 cursor-pointer transition-colors group",
-        isSelected ? "bg-indigo-900/30" : "hover:bg-surface-light/50",
-        isUnread && "bg-surface/50"
-      )}
-    >
-      {/* Star */}
-      <button
-        onClick={onToggleStar}
-        className="p-1 -m-1 hover:bg-surface-light/50 rounded transition-colors"
-      >
-        <Star
-          className={cn(
-            "w-4 h-4",
-            thread.isStarred ? "fill-yellow-500 text-yellow-500" : "text-slate-500"
-          )}
-        />
-      </button>
-
-      {/* Content */}
-      <div className="flex-1 min-w-0">
-        {/* Sender & Time */}
-        <div className="flex items-center justify-between gap-2 mb-1">
-          <span className={cn(
-            "truncate text-sm",
-            isUnread ? "font-semibold text-text-primary" : "text-text-secondary"
-          )}>
-            {participantNames}
-          </span>
-          <span className="text-xs text-slate-500 whitespace-nowrap">
-            {timeAgo}
-          </span>
-        </div>
-
-        {/* Subject */}
-        <div className={cn(
-          "text-sm truncate mb-1",
-          isUnread ? "font-medium text-text-primary" : "text-text-muted"
-        )}>
-          {thread.subject || '(No subject)'}
-        </div>
-
-        {/* Snippet */}
-        <div className="text-xs text-text-muted truncate">
-          {thread.snippet}
-        </div>
-
-        {/* Indicators */}
-        <div className="flex items-center gap-2 mt-2">
-          {thread.hasAttachments && (
-            <Paperclip className="w-3 h-3 text-slate-500" />
-          )}
-          {thread.messageCount > 1 && (
-            <span className="text-xs text-slate-500 bg-slate-800 px-1.5 py-0.5 rounded">
-              {thread.messageCount}
-            </span>
-          )}
-          {/* Show lock icon for encrypted (internal GNS) emails */}
-          {thread.participants.some(p => p.isGns) && (
-            <span title="End-to-end encrypted"><Lock className="w-3 h-3 text-green-500" /></span>
-          )}
-        </div>
-      </div>
-
-      {/* Delete button (visible on hover) */}
-      <button
-        onClick={onDelete}
-        className="p-2 opacity-0 group-hover:opacity-100 hover:bg-red-500/20 rounded transition-all"
-      >
-        <Trash2 className="w-4 h-4 text-red-400" />
-      </button>
     </div>
   );
 }

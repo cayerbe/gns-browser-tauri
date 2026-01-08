@@ -1,20 +1,23 @@
-// ===========================================
-// GNS BROWSER - EMAIL TAB
-// ===========================================
-
 import { useState } from 'react';
 import { EmailList } from './EmailList';
 import { EmailThreadView } from './EmailThread';
+import { EmailSidebar } from './EmailSidebar';
 import { EmailCompose } from './EmailCompose';
-import { EmailThread, EmailMessage } from '../../types/email';
+import { EmailThread, EmailMessage, EmailFolder } from '../../types/email';
 
 interface EmailTabProps {
-  // Optional: pass user handle for display
   userHandle?: string;
 }
 
 export function EmailTab({ }: EmailTabProps) {
+  // Navigation State
+  const [currentFolder, setCurrentFolder] = useState<EmailFolder>('inbox');
   const [selectedThread, setSelectedThread] = useState<EmailThread | null>(null);
+
+  // Stats (Mock for now, would come from API)
+  const unreadCount = 0;
+
+  // Compose State
   const [composeState, setComposeState] = useState<{
     isOpen: boolean;
     replyTo?: EmailMessage;
@@ -25,10 +28,6 @@ export function EmailTab({ }: EmailTabProps) {
   // Handlers
   const handleSelectThread = (thread: EmailThread) => {
     setSelectedThread(thread);
-  };
-
-  const handleBack = () => {
-    setSelectedThread(null);
   };
 
   const handleCompose = () => {
@@ -47,42 +46,56 @@ export function EmailTab({ }: EmailTabProps) {
     setComposeState({ isOpen: false });
   };
 
-  const handleSent = () => {
-    // Optionally refresh or show success message
-  };
-
-  const handleDeleteThread = () => {
-    // Thread deletion is handled in EmailList
-    setSelectedThread(null);
-  };
-
   return (
-    <div className="h-full">
-      {/* Show thread view or list */}
-      {selectedThread ? (
-        <EmailThreadView
-          thread={selectedThread}
-          onBack={handleBack}
-          onReply={handleReply}
-          onForward={handleForward}
-          onDelete={handleDeleteThread}
-        />
-      ) : (
-        <EmailList
-          onSelectThread={handleSelectThread}
-          onCompose={handleCompose}
-          selectedThreadId={(selectedThread as any)?.id}
-        />
-      )}
+    <div className="flex w-full h-full bg-background text-foreground overflow-hidden">
+      {/* 1. Sidebar (Folders) */}
+      <EmailSidebar
+        currentFolder={currentFolder}
+        onSelectFolder={setCurrentFolder}
+        unreadCount={unreadCount}
+        className="hidden md:flex flex-none"
+      />
 
-      {/* Compose modal */}
+      {/* 2. Thread List */}
+      <EmailList
+        onSelectThread={handleSelectThread}
+        onCompose={handleCompose}
+        selectedThreadId={selectedThread?.id}
+        className="flex-none w-[350px] border-r border-border"
+      />
+
+      {/* 3. Thread View (Main) */}
+      <div className="flex-1 min-w-0 bg-background">
+        {selectedThread ? (
+          <EmailThreadView
+            thread={selectedThread}
+            onBack={() => setSelectedThread(null)}
+            onReply={handleReply}
+            onForward={handleForward}
+            onDelete={() => {
+              // Optimistic clear
+              setSelectedThread(null);
+            }}
+          />
+        ) : (
+          <div className="h-full flex flex-col items-center justify-center text-muted-foreground p-8 text-center bg-muted/10">
+            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+              <span className="text-4xl">📧</span>
+            </div>
+            <h3 className="text-xl font-semibold mb-2">Effective Communication</h3>
+            <p className="max-w-xs text-sm">Select an item to read it.</p>
+          </div>
+        )}
+      </div>
+
+      {/* Modal: Compose */}
       {composeState.isOpen && (
         <EmailCompose
           replyTo={composeState.replyTo}
           replyAll={composeState.replyAll}
           forward={composeState.forward}
           onClose={handleCloseCompose}
-          onSent={handleSent}
+          onSent={() => { }}
         />
       )}
     </div>

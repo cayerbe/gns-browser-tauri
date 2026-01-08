@@ -63,3 +63,5 @@ export interface EmailStats {
   unreadCount: number;
   sentToday: number;
 }
+
+export type EmailFolder = 'inbox' | 'sent' | 'drafts' | 'trash';
