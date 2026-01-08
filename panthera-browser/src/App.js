@@ -480,6 +480,19 @@ const AppContent = () => {
           }, ...prev];
         });
         setConversationMessages(prev => [...prev, newMessage]);
+
+        // Save to localStorage sync
+        try {
+          const syncedKey = `gns_synced_${messageRecipient.publicKey.toLowerCase()}`;
+          const syncedMessages = JSON.parse(localStorage.getItem(syncedKey) || '[]');
+          syncedMessages.push({
+            id: result.messageId || `msg_${Date.now()}`,
+            text: text,
+            timestamp: Date.now()
+          });
+          localStorage.setItem(syncedKey, JSON.stringify(syncedMessages));
+        } catch (e) { console.error(e); }
+
         wsService.notifyMessageSent(
           result.messageId || `msg_${Date.now()}`,
           messageRecipient.publicKey,
@@ -520,20 +533,19 @@ const AppContent = () => {
 
         setConversationMessages(prev => [...prev, newMessage]);
 
-        // Save to localStorage sync
+        // Save to localStorage sync (Correct format for loadConversation)
         try {
-          const syncData = localStorage.getItem('gns_message_sync');
-          const messageSync = syncData ? JSON.parse(syncData) : { conversations: [] };
-          let conv = messageSync.conversations?.find(c => c.withPublicKey.toLowerCase() === selectedConversation.publicKey.toLowerCase());
-          if (!conv) {
-            conv = { withPublicKey: selectedConversation.publicKey, withHandle: selectedConversation.handle, messages: [] };
-            messageSync.conversations = messageSync.conversations || [];
-            messageSync.conversations.push(conv);
-          }
-          conv.messages = conv.messages || [];
-          conv.messages.push(newMessage);
-          localStorage.setItem('gns_message_sync', JSON.stringify(messageSync));
-        } catch (e) { }
+          const syncedKey = `gns_synced_${selectedConversation.publicKey.toLowerCase()}`;
+          const syncedMessages = JSON.parse(localStorage.getItem(syncedKey) || '[]');
+          syncedMessages.push({
+            id: newMessage.id,
+            text: text,
+            timestamp: newMessage.timestamp
+          });
+          localStorage.setItem(syncedKey, JSON.stringify(syncedMessages));
+        } catch (e) {
+          console.error('Failed to save sync message', e);
+        }
 
         wsService.notifyMessageSent(newMessage.id, selectedConversation.publicKey, text);
 
