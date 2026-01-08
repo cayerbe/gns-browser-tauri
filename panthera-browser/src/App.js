@@ -56,10 +56,9 @@ const AppContent = () => {
   const studioState = useStudioState();
 
   const shortcuts = [
-    { icon: Globe, label: 'gcrumbs', color: '#0EA5E9' },
+    { icon: MessageCircle, label: 'chat', color: '#0EA5E9' },
     { icon: Megaphone, label: 'dix', color: '#8B5CF6' },
     { icon: Mail, label: 'email', color: '#EC4899' },
-    { icon: MessageCircle, label: 'echo', color: '#10B981' },
     { icon: Video, label: 'video', color: '#F59E0B' },
     { icon: Home, label: 'home', color: '#6366F1' },
     // Studio tab - only shows when authenticated

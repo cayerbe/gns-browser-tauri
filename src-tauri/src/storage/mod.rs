@@ -502,6 +502,61 @@ impl Database {
         Ok(())
     }
 
+    /// Save a message sent from the browser (synced)
+    pub fn save_browser_sent_message(
+        &mut self,
+        message_id: &str,
+        to_pk: &str,
+        text: &str,
+        timestamp: i64,
+        my_pk: &str,
+    ) -> Result<(), DatabaseError> {
+        // Determine thread ID
+        // Match message_handler.rs logic: direct_{sorted_keys}
+        let mut keys = vec![my_pk, to_pk];
+        keys.sort();
+        let thread_id = format!("direct_{}", &keys.join("_")[..32]);
+
+        // Get or create thread
+        self.get_or_create_thread(&thread_id, to_pk, None, None)?;
+
+        let payload_json = serde_json::json!({ "text": text });
+
+        // Insert message
+        self.conn
+            .execute(
+                r#"
+                INSERT OR REPLACE INTO messages 
+                (id, thread_id, from_public_key, payload_type, payload_json, timestamp, is_outgoing, status, signature_valid)
+                VALUES (?, ?, ?, 'text', ?, ?, 1, 'sent', 1)
+                "#,
+                params![
+                    message_id,
+                    thread_id,
+                    my_pk,
+                    serde_json::to_string(&payload_json).unwrap_or_default(),
+                    timestamp,
+                ],
+            )
+            .map_err(|e| DatabaseError::SqliteError(e.to_string()))?;
+
+        // Update thread
+        self.update_thread_for_message(&thread_id, timestamp, false)?;
+
+        Ok(())
+    }
+
+    /// Mark a message as read (acknowledged)
+    pub fn mark_message_read(&mut self, message_id: &str) -> Result<(), DatabaseError> {
+        self.conn
+            .execute(
+                "UPDATE messages SET status = 'read' WHERE id = ?",
+                params![message_id],
+            )
+            .map_err(|e| DatabaseError::SqliteError(e.to_string()))?;
+        Ok(())
+    }
+
     /// Count pending messages
     pub fn count_pending_messages(&self) -> Result<u32, DatabaseError> {
         let count: i64 = self

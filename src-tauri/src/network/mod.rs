@@ -514,6 +514,18 @@ pub enum IncomingMessage {
     ConnectionStatus { mobile: bool, browsers: u32 },
     /// Welcome message
     Welcome { public_key: String },
+    /// Message synced from browser
+    MessageSentFromBrowser {
+        message_id: String,
+        to_pk: String,
+        plaintext: String,
+        timestamp: i64,
+    },
+    /// Read receipt
+    ReadReceipt {
+        message_id: String,
+        timestamp: i64,
+    },
     /// Unknown message type
     Unknown(String),
 }
@@ -729,6 +741,20 @@ fn parse_incoming_message(text: &str) -> IncomingMessage {
             let mobile = json["data"]["mobile"].as_bool().unwrap_or(false);
             let browsers = json["data"]["browsers"].as_u64().unwrap_or(0) as u32;
             IncomingMessage::ConnectionStatus { mobile, browsers }
+        }
+        "message_sent_from_browser" => {
+            IncomingMessage::MessageSentFromBrowser {
+                message_id: json["messageId"].as_str().unwrap_or_default().to_string(),
+                to_pk: json["to_pk"].as_str().unwrap_or_default().to_string(),
+                plaintext: json["plaintext"].as_str().unwrap_or_default().to_string(),
+                timestamp: json["timestamp"].as_i64().unwrap_or_else(|| chrono::Utc::now().timestamp_millis()),
+            }
+        }
+        "read_receipt" => {
+            IncomingMessage::ReadReceipt {
+                message_id: json["messageId"].as_str().unwrap_or_default().to_string(),
+                timestamp: json["timestamp"].as_i64().unwrap_or_else(|| chrono::Utc::now().timestamp_millis()),
+            }
         }
         "envelope" | "message" => {
             // Try to parse the envelope from data field or root

@@ -294,10 +294,10 @@ class WebSocketService {
     }
 
     this.send({
-      type: 'sync_to_mobile',
+      type: 'message_sent_from_browser',
       messageId,
-      conversationWith,
-      decryptedText: plaintext,  // ← CORRECT: Send the actual text
+      to_pk: conversationWith,
+      plaintext: plaintext,
       direction: 'outgoing',
       timestamp: Date.now(),
     });

@@ -50,6 +50,35 @@ pub fn start_message_handler(
                         "browsers": browsers,
                     }));
                 }
+                IncomingMessage::MessageSentFromBrowser { message_id, to_pk, plaintext, timestamp } => {
+                    tracing::info!("Syncing browser message: {}", &message_id);
+                    
+                    let identity_guard = identity.lock().await;
+                    if let Some(gns_id) = identity_guard.get_identity() {
+                         let my_pk = gns_id.public_key_hex();
+                         let mut db = database.lock().await;
+                         if let Err(e) = db.save_browser_sent_message(&message_id, &to_pk, &plaintext, timestamp, &my_pk) {
+                             tracing::error!("Failed to save browser message: {}", e);
+                         } else {
+                            // Emit to UI
+                            let _ = app_handle.emit("message_synced", serde_json::json!({
+                                "id": message_id,
+                                "to_pk": to_pk,
+                                "text": plaintext,
+                                "timestamp": timestamp,
+                                "is_outgoing": true
+                            }));
+                         }
+                    }
+                }
+                IncomingMessage::ReadReceipt { message_id, timestamp: _ } => {
+                    let mut db = database.lock().await;
+                    if let Err(e) = db.mark_message_read(&message_id) {
+                        tracing::error!("Failed to mark message read: {}", e);
+                    } else {
+                        let _ = app_handle.emit("message_read", serde_json::json!({ "id": message_id }));
+                    }
+                }
                 IncomingMessage::Unknown(text) => {
                     tracing::trace!("Unknown message type: {}", &text[..text.len().min(100)]);
                 }

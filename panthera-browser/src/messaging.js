@@ -143,6 +143,12 @@ export async function sendMessage(recipientIdentityKey, content, recipientEncryp
 
       if (response.ok && data.success) {
         console.log('   ✅ Encrypted message sent via session token!');
+
+        // SYNC: Notify mobile/backend of browser-originated message
+        import('./websocket').then(({ default: wsService }) => {
+          wsService.notifyMessageSent(data.data?.messageId, toPk, content);
+        });
+
         return {
           success: true,
           data: data.data,
@@ -221,6 +227,12 @@ export async function sendMessage(recipientIdentityKey, content, recipientEncryp
 
     if (response.ok && data.success) {
       console.log('   ✅ Encrypted message sent via legacy auth!');
+
+      // SYNC: Notify mobile/backend of browser-originated message
+      import('./websocket').then(({ default: wsService }) => {
+        wsService.notifyMessageSent(data.data?.messageId, toPk, content);
+      });
+
       return {
         success: true,
         data,
@@ -365,6 +377,18 @@ export async function acknowledgeMessage(messageId) {
     });
 
     const data = await response.json();
+
+    if (data.success) {
+      // SYNC: Notify mobile that message was read on browser
+      import('./websocket').then(({ default: wsService }) => {
+        wsService.send({
+          type: 'read_receipt',
+          messageId,
+          timestamp: Date.now()
+        });
+      });
+    }
+
     return { success: data.success };
   } catch (error) {
     return { success: false, error: error.message };
