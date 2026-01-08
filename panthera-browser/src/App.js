@@ -328,13 +328,14 @@ const AppContent = () => {
           const serverMessages = result.messages.map(msg => {
             const isOutgoing = (msg.from_pk || msg.fromPublicKey || '').toLowerCase() === session.publicKey?.toLowerCase();
 
-            if (isOutgoing && syncedMessages.length > 0) {
+            if (syncedMessages.length > 0) {
               const msgTimestamp = new Date(msg.created_at).getTime();
               const syncedMatch = syncedMessages.find(s =>
                 (msg.id && s.id && msg.id === s.id) ||
                 Math.abs(msgTimestamp - s.timestamp) < 5000
               );
               if (syncedMatch?.text) {
+                // Use synced text if available (works for both incoming/outgoing)
                 return { ...msg, isOutgoing, decryptedText: syncedMatch.text };
               }
             }
@@ -351,12 +352,31 @@ const AppContent = () => {
             return { ...msg, isOutgoing };
           });
 
+          // ✅ NEW: Add locally saved messages that are missing from server (Robustness fix)
+          // Handle both incoming and outgoing
+          const offlineMessages = syncedMessages.filter(sm =>
+            !serverMessages.find(rm => rm.id === sm.id || Math.abs(new Date(rm.created_at).getTime() - sm.timestamp) < 5000)
+          ).map(sm => {
+            const isMsgOutgoing = sm.direction !== 'incoming' && sm.direction !== 'inbound';
+            return {
+              id: sm.id,
+              from_pk: isMsgOutgoing ? session.publicKey : publicKey,
+              to_pk: isMsgOutgoing ? publicKey : session.publicKey,
+              payload: JSON.stringify({ type: 'text', content: sm.text }),
+              created_at: new Date(sm.timestamp).toISOString(),
+              isOutgoing: isMsgOutgoing,
+              decryptedText: sm.text,
+              timestamp: sm.timestamp
+            };
+          });
+
           const localMessages = prev.filter(m =>
             m.decryptedText && m.isOutgoing && m.to_pk?.toLowerCase() === publicKey.toLowerCase() &&
-            !result.messages.find(rm => rm.id === m.id)
+            !serverMessages.find(rm => rm.id === m.id) &&
+            !offlineMessages.find(om => om.id === m.id)
           );
 
-          const combined = [...serverMessages, ...localMessages];
+          const combined = [...serverMessages, ...offlineMessages, ...localMessages];
           combined.sort((a, b) => new Date(a.created_at || a.timestamp) - new Date(b.created_at || b.timestamp));
           return combined;
         });

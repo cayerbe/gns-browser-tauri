@@ -602,7 +602,12 @@ impl RelayConnection {
         *self.state.write().await = ConnectionState::Connecting;
         tracing::info!("Connecting to relay: {}", self.url);
 
-        let url_with_auth = format!("{}?pk={}", self.url, public_key);
+        #[cfg(any(target_os = "ios", target_os = "android"))]
+        let device_type = "mobile";
+        #[cfg(not(any(target_os = "ios", target_os = "android")))]
+        let device_type = "desktop";
+
+        let url_with_auth = format!("{}?pk={}&device={}", self.url, public_key, device_type);
 
         let (ws_stream, _) = connect_async(&url_with_auth).await.map_err(|e| {
             tracing::error!("WebSocket connection failed: {}", e);
