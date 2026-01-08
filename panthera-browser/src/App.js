@@ -323,6 +323,14 @@ const AppContent = () => {
       if (result.success) {
         const syncedKey = `gns_synced_${publicKey.toLowerCase()}`;
         const syncedMessages = JSON.parse(localStorage.getItem(syncedKey) || '[]');
+        const session = JSON.parse(localStorage.getItem('gns_browser_session') || '{}');
+
+        console.log('DEBUG: loadConversation', {
+          handle,
+          myPublicKey: session.publicKey,
+          syncedCount: syncedMessages.length,
+          syncedPreview: syncedMessages.slice(0, 3)
+        });
 
         setConversationMessages(prev => {
           const session = JSON.parse(localStorage.getItem('gns_browser_session') || '{}');
