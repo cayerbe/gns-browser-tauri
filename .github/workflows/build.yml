@@ -93,25 +93,33 @@ jobs:
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
 
-      - name: Install UI dependencies
-        working-directory: ./ui
-        run: npm ci
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
 
-      - name: Build UI
-        working-directory: ./ui
-        run: npm run build
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build UI Packages
+        run: |
+          pnpm --filter @gns/api-core build
+          pnpm --filter @gns/ui build
+          pnpm --filter @gns/desktop build
 
       - name: Install Tauri CLI
         run: cargo install tauri-cli --version "^2.0.0" --locked
 
       - name: Build Tauri app (macOS universal)
         if: matrix.platform == 'macos-latest'
+        working-directory: ./apps/desktop
         run: cargo tauri build --target universal-apple-darwin
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build Tauri app (Linux/Windows)
         if: matrix.platform != 'macos-latest'
+        working-directory: ./apps/desktop
         run: cargo tauri build
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
