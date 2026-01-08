@@ -1,6 +1,6 @@
 [package]
 name = "gns-browser"
-version = "1.0.0"
+version = "1.0.1"
 description = "GNS Browser - The Identity Web Browser"
 authors = ["GNS Team <dev@gcrumbs.com>"]
 license = "BSL-1.1"

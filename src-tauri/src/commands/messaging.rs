@@ -340,6 +340,20 @@ pub async fn save_sent_email_message(
     })
 }
 
+/// Request decryption of messages from other devices (Mobile)
+#[tauri::command]
+pub async fn request_message_decryption(
+    message_ids: Vec<String>,
+    conversation_with: String,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    let relay = state.relay.lock().await;
+    relay
+        .send_decryption_request(message_ids, &conversation_with)
+        .await
+        .map_err(|e| format!("Failed to send decryption request: {}", e))
+}
+
 /// Resolve a handle to identity info
 #[tauri::command]
 pub async fn resolve_handle(

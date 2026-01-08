@@ -225,6 +225,7 @@ pub fn run() {
             commands::messaging::delete_message,
             commands::messaging::add_reaction,
             commands::messaging::save_sent_email_message,
+            commands::messaging::request_message_decryption,
             commands::messaging::resolve_handle,
             // Breadcrumb commands
             commands::breadcrumbs::get_breadcrumb_count,

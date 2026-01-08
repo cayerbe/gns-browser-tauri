@@ -310,6 +310,19 @@ export async function publishIdentity(): Promise<CommandResult<boolean>> {
 
 // ==================== Messaging Commands ====================
 
+export async function requestMessageDecryption(
+  messageIds: string[],
+  conversationWith: string
+): Promise<void> {
+  if (!isTauriApp()) {
+    return;
+  }
+  return invoke('request_message_decryption', {
+    messageIds,
+    conversationWith,
+  });
+}
+
 export async function sendMessage(params: {
   recipientHandle?: string;
   recipientPublicKey?: string;

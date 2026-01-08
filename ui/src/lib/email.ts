@@ -1,5 +1,5 @@
 import { EmailThread, EmailMessage, EmailComposeData, EmailStats, EmailAddress } from '../types/email';
-import { signString, getPublicKey, getCurrentHandle, getThreads, getMessages, getThread, deleteThread, markThreadRead, ThreadPreview, Message, saveSentEmailMessage } from './tauri';
+import { signString, getPublicKey, getCurrentHandle, getThreads, getMessages, getThread, deleteThread, markThreadRead, ThreadPreview, Message, saveSentEmailMessage, requestMessageDecryption } from './tauri';
 import { EMAIL_GATEWAY_PUBLIC_KEY } from './constants';
 
 const API_BASE = 'https://gns-browser-production.up.railway.app';
@@ -173,6 +173,13 @@ export const EmailApi = {
    */
   async deleteThread(threadId: string): Promise<void> {
     await deleteThread(threadId);
+  },
+
+  /**
+   * Request decryption of specific messages from Mobile
+   */
+  async requestDecryption(messageIds: string[], conversationWith: string): Promise<void> {
+    await requestMessageDecryption(messageIds, conversationWith);
   },
 
   // ===========================================
