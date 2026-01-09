@@ -23,6 +23,9 @@ importers:
       '@gns/api-tauri':
         specifier: workspace:*
         version: link:../../packages/api-tauri
+      '@gns/api-web':
+        specifier: workspace:*
+        version: link:../../packages/api-web
       '@gns/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -123,6 +126,9 @@ importers:
       '@tanstack/react-query':
         specifier: ^5.0.0
         version: 5.90.16(react@18.3.1)
+      '@tauri-apps/api':
+        specifier: ^2.0.0
+        version: 2.9.1
       base64-arraybuffer:
         specifier: ^1.0.2
         version: 1.0.2

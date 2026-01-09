@@ -16,6 +16,7 @@ mod dix;
 mod message_handler; // Added
 
 use std::sync::Arc;
+use keyring::Entry;
 use tauri::{Emitter, Manager};
 use tokio::sync::Mutex;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -27,6 +28,36 @@ use crate::location::BreadcrumbCollector;
 use crate::network::{ApiClient, RelayConnection};
 use crate::stellar::StellarService;
 use crate::storage::Database;
+
+// Secure keychain storage
+#[tauri::command]
+fn secure_store(key: String, value: String) -> Result<(), String> {
+    let entry = Entry::new("gns-browser", &key)
+        .map_err(|e| e.to_string())?;
+    entry.set_password(&value)
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+fn secure_get(key: String) -> Result<Option<String>, String> {
+    let entry = Entry::new("gns-browser", &key)
+        .map_err(|e| e.to_string())?;
+    match entry.get_password() {
+        Ok(password) => Ok(Some(password)),
+        Err(keyring::Error::NoEntry) => Ok(None),
+        Err(e) => Err(e.to_string()),
+    }
+}
+
+#[tauri::command]
+fn secure_delete(key: String) -> Result<(), String> {
+    let entry = Entry::new("gns-browser", &key)
+        .map_err(|e| e.to_string())?;
+    entry.delete_password()
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
 
 /// Application state shared across all commands
 #[derive(Clone)]
@@ -143,6 +174,10 @@ fn main() {
             commands::identity::export_identity_backup,
             commands::identity::delete_identity,
             commands::identity::sign_string,
+            // Secure Storage
+            secure_store,
+            secure_get,
+            secure_delete,
             // Handle commands
             commands::commands_handle::create_identity_with_handle,
             commands::commands_handle::check_handle_available,

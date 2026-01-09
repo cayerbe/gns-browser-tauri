@@ -50,12 +50,13 @@ export function WelcomeScreen({ onComplete }: WelcomeScreenProps) {
     return (
       <WelcomeStep
         onGetStarted={() => setStep(isMobile ? 'create' : 'qr-login')}
+        onConnectExisting={() => setStep('qr-login')}
         isMobile={isMobile}
       />
     );
   }
 
-  // QR Login (Web only)
+  // QR Login (Web or Desktop via QR)
   if (step === 'qr-login') {
     return (
       <QRLoginStep
@@ -80,9 +81,11 @@ export function WelcomeScreen({ onComplete }: WelcomeScreenProps) {
 
 function WelcomeStep({
   onGetStarted,
+  onConnectExisting,
   isMobile
 }: {
   onGetStarted: () => void;
+  onConnectExisting?: () => void;
   isMobile: boolean;
 }) {
   const features = [
@@ -137,10 +140,10 @@ function WelcomeStep({
       {/* CTA Button */}
       <button
         onClick={onGetStarted}
-        className="w-full max-w-sm py-4 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-xl flex items-center justify-center gap-2 transition-colors"
+        className="w-full max-w-sm py-4 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-xl flex items-center justify-center gap-2 transition-colors mb-4"
       >
         {isMobile ? (
-          <>Get Started <ArrowRight size={20} /></>
+          <>Create New Identity <ArrowRight size={20} /></>
         ) : (
           <>
             <QrCode size={20} />
@@ -149,10 +152,21 @@ function WelcomeStep({
         )}
       </button>
 
+      {/* Secondary Button for Desktop (Tauri) to Login */}
+      {isMobile && onConnectExisting && (
+        <button
+          onClick={onConnectExisting}
+          className="w-full max-w-sm py-4 bg-[#161B22] hover:bg-[#1C2128] text-gray-300 font-semibold rounded-xl flex items-center justify-center gap-2 transition-colors border border-gray-700 hover:border-gray-600"
+        >
+          <QrCode size={20} />
+          Connect Existing Identity
+        </button>
+      )}
+
       {/* Platform hint */}
       <p className="text-gray-600 text-sm mt-4 text-center">
         {isMobile
-          ? "Create your identity on this device"
+          ? "Create a new identity locally or connect an existing one"
           : "Scan QR code with your GNS mobile app"
         }
       </p>

@@ -11,7 +11,7 @@ import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { GSiteViewer, GSiteCreator } from './components/gsite';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { hasIdentity, getCurrentHandle, getBreadcrumbStatus } from '@gns/api-tauri';
+import { getBreadcrumbStatus } from '@gns/api-tauri';
 import { profileToGSite } from './lib/gsite';
 import { GSite } from './types/gsite';
 
@@ -90,10 +90,13 @@ function GSiteViewerRoute() {
 
 type AppScreen = 'loading' | 'welcome' | 'main';
 
-function AppContent() {
+import { useApi, ApiProvider } from '@gns/ui';
+import { tauriAdapter, webAdapter } from './lib/adapter';
+
+function AppContentWithContext() {
+  const api = useApi();
   const navigate = useNavigate();
   const [screen, setScreen] = useState<AppScreen>('loading');
-  const [error, setError] = useState<string | null>(null);
   const [collectionEnabled, setCollectionEnabled] = useState(false);
 
   // GSite State
@@ -108,7 +111,7 @@ function AppContent() {
   useEffect(() => {
     checkIdentity();
     loadCollectionState();
-  }, []);
+  }, [api]); // Re-run if api (adapter) changes
 
   const loadCollectionState = async () => {
     try {
@@ -121,12 +124,12 @@ function AppContent() {
 
   const checkIdentity = async () => {
     try {
-      const exists = await hasIdentity();
+      const authenticated = await api.isAuthenticated();
 
-      if (exists) {
+      if (authenticated) {
         // Sync handle to local storage if missing or stale
         try {
-          const handle = await getCurrentHandle();
+          const handle = await api.getCurrentHandle();
           if (handle) {
             console.log('Synced identity handle:', handle);
             localStorage.setItem('gns_handle', handle);
@@ -140,8 +143,7 @@ function AppContent() {
       }
     } catch (err) {
       console.error('Failed to check identity:', err);
-      setError('Failed to initialize app');
-      // Default to welcome screen on error
+      // Don't show error immediately on welcome check failure, just go to welcome
       setScreen('welcome');
     }
   };
@@ -150,17 +152,20 @@ function AppContent() {
   const handleWelcomeComplete = () => {
     console.log('Welcome complete - identity created');
     setScreen('main');
+    // Force a re-check or reload to pick up the new state/adapter
+    window.location.reload();
   };
 
   // Handle identity deletion
   const handleIdentityDeleted = () => {
     console.log('Identity deleted - returning to welcome screen');
     setScreen('welcome');
+    window.location.reload();
   };
 
   // Loading screen
   if (screen === 'loading') {
-    return <LoadingScreen message={error || undefined} />;
+    return <LoadingScreen />;
   }
 
   // Welcome screen for new users
@@ -265,19 +270,61 @@ function AppContent() {
   );
 }
 
-import { ApiProvider } from '@gns/ui';
-import { tauriAdapter } from './lib/adapter';
+function AdapterRoot() {
+  // Determine which adapter to use on startup
+  const [activeAdapter, setActiveAdapter] = useState(tauriAdapter);
+  const [checked, setChecked] = useState(false);
+
+  useEffect(() => {
+    checkContext();
+  }, []);
+
+  const checkContext = async () => {
+    // 1. Check Native (Rust) Identity
+    try {
+      if (await tauriAdapter.isAuthenticated()) {
+        console.log("Using Tauri Native Adapter");
+        setActiveAdapter(tauriAdapter);
+        setChecked(true);
+        return;
+      }
+    } catch (e) {
+      console.warn("Tauri check failed", e);
+    }
+
+    // 2. Check Web (LocalStorage) Identity
+    try {
+      if (await webAdapter.isAuthenticated()) {
+        console.log("Using Web Fallback Adapter");
+        setActiveAdapter(webAdapter);
+        setChecked(true);
+        return;
+      }
+    } catch (e) {
+      console.warn("Web check failed", e);
+    }
+
+    // Default to Tauri (Welcome Screen)
+    setChecked(true);
+  };
+
+  if (!checked) return <LoadingScreen />;
+
+  return (
+    <ApiProvider adapter={activeAdapter}>
+      <BrowserRouter>
+        <div className="min-h-screen bg-background text-text-primary transition-colors duration-300">
+          <AppContentWithContext />
+        </div>
+      </BrowserRouter>
+    </ApiProvider>
+  );
+}
 
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <ApiProvider adapter={tauriAdapter}>
-        <BrowserRouter>
-          <div className="min-h-screen bg-background text-text-primary transition-colors duration-300">
-            <AppContent />
-          </div>
-        </BrowserRouter>
-      </ApiProvider>
+      <AdapterRoot />
     </QueryClientProvider>
   );
 }
