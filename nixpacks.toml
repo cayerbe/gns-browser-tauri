@@ -2,10 +2,13 @@
 nixPkgs = ["nodejs_18", "pnpm"]
 
 [phases.install]
-cmds = ["pnpm --filter gns-node install"]
+cmds = ["pnpm install --filter gns-node..."]
 
 [phases.build]
 cmds = ["pnpm --filter gns-node build"]
 
 [start]
 cmd = "pnpm --filter gns-node start"
+
+# Disable Rust detection
+providers = ["node"]
