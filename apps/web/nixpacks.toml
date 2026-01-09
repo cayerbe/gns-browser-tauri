@@ -1,5 +1,7 @@
+providers = ["node"]
+
 [phases.setup]
-nixPkgs = ["nodejs_18", "pnpm-9_x"]
+nixPkgs = ["nodejs_18", "pnpm"]
 
 [phases.install]
 cmds = ["pnpm install"]
