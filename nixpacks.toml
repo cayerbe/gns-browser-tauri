@@ -1,7 +1,7 @@
 providers = ["node"]
 
 [phases.setup]
-nixPkgs = ["nodejs_18", "pnpm"]
+nixPkgs = ["nodejs_18", "pnpm", "pkg-config", "glib", "gtk3", "webkitgtk", "openssl", "librsvg", "libsoup"]
 
 [phases.install]
 cmds = ["pnpm install --filter @gns/web..."]
