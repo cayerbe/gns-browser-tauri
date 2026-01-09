@@ -22,7 +22,20 @@
         "noUnusedParameters": false,
         "noFallthroughCasesInSwitch": true,
         "allowJs": true,
-        "esModuleInterop": true
+        "allowJs": true,
+        "esModuleInterop": true,
+        "baseUrl": ".",
+        "paths": {
+            "@gns/api-core": [
+                "../../packages/api-core/src/index.ts"
+            ],
+            "@gns/api-web": [
+                "../../packages/api-web/src/index.ts"
+            ],
+            "@gns/ui": [
+                "../../packages/ui/src/index.ts"
+            ]
+        }
     },
     "include": [
         "src",

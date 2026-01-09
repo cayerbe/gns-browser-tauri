@@ -10,6 +10,9 @@ export default defineConfig({
     resolve: {
         alias: {
             '@': path.resolve(__dirname, './src'),
+            '@gns/api-core': path.resolve(__dirname, '../../packages/api-core/src/index.ts'),
+            '@gns/api-web': path.resolve(__dirname, '../../packages/api-web/src/index.ts'),
+            '@gns/ui': path.resolve(__dirname, '../../packages/ui/src/index.ts'),
             'libsodium-wrappers': require.resolve('libsodium-wrappers'),
         },
     },
