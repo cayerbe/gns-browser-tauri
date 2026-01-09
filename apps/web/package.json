@@ -8,7 +8,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "start:prod": "serve dist -s -l $PORT",
+    "start:prod": "serve build -s -l $PORT",
     "lint": "eslint src"
   },
   "dependencies": {
