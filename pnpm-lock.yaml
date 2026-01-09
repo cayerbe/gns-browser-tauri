@@ -20,6 +20,9 @@ importers:
       '@gns/api-core':
         specifier: workspace:*
         version: link:../../packages/api-core
+      '@gns/api-tauri':
+        specifier: workspace:*
+        version: link:../../packages/api-tauri
       '@gns/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -111,6 +114,9 @@ importers:
       '@gns/api-core':
         specifier: workspace:*
         version: link:../../packages/api-core
+      '@gns/api-web':
+        specifier: workspace:*
+        version: link:../../packages/api-web
       '@gns/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -177,6 +183,53 @@ importers:
         version: 5.4.21(@types/node@25.0.3)(terser@5.44.1)
 
   packages/api-core:
+    devDependencies:
+      tsup:
+        specifier: ^8.0.0
+        version: 8.5.1(@microsoft/api-extractor@7.43.0(@types/node@25.0.3))(jiti@1.21.7)(postcss@8.5.6)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.3
+
+  packages/api-tauri:
+    dependencies:
+      '@gns/api-core':
+        specifier: workspace:*
+        version: link:../api-core
+      '@tauri-apps/api':
+        specifier: ^2.0.0
+        version: 2.9.1
+      '@tauri-apps/plugin-geolocation':
+        specifier: ^2.3.2
+        version: 2.3.2
+      react:
+        specifier: ^18.2.0
+        version: 18.3.1
+    devDependencies:
+      '@types/react':
+        specifier: ^18.2.0
+        version: 18.3.27
+      tsup:
+        specifier: ^8.0.0
+        version: 8.5.1(@microsoft/api-extractor@7.43.0(@types/node@25.0.3))(jiti@1.21.7)(postcss@8.5.6)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.3
+
+  packages/api-web:
+    dependencies:
+      '@gns/api-core':
+        specifier: workspace:*
+        version: link:../api-core
+      base64-arraybuffer:
+        specifier: ^1.0.2
+        version: 1.0.2
+      libsodium-wrappers:
+        specifier: ^0.7.13
+        version: 0.7.16
+      tweetnacl:
+        specifier: ^1.0.3
+        version: 1.0.3
     devDependencies:
       tsup:
         specifier: ^8.0.0

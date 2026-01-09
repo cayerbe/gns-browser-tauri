@@ -539,6 +539,12 @@ pub enum IncomingMessage {
         conversation_with: String,
         limit: u32,
     },
+    /// Request to decrypt messages
+    RequestDecryption {
+        message_ids: Vec<String>,
+        conversation_with: String,
+        requester_pk: String,
+    },
     /// Unknown message type
     Unknown(String),
 }
@@ -789,6 +795,18 @@ fn parse_incoming_message(text: &str) -> IncomingMessage {
                 to_pk: json["to_pk"].as_str().unwrap_or_default().to_string(),
                 plaintext: json["plaintext"].as_str().unwrap_or_default().to_string(),
                 timestamp: json["timestamp"].as_i64().unwrap_or_else(|| chrono::Utc::now().timestamp_millis()),
+            }
+        }
+        "request_decryption" => {
+            let ids: Vec<String> = json["messageIds"]
+                .as_array()
+                .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+                .unwrap_or_default();
+                
+            IncomingMessage::RequestDecryption {
+                message_ids: ids,
+                conversation_with: json["conversationWith"].as_str().unwrap_or_default().to_string(),
+                requester_pk: json["requester"].as_str().unwrap_or_default().to_string(),
             }
         }
         "message_synced" => {

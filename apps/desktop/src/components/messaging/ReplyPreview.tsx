@@ -1,4 +1,4 @@
-import { Message } from '../../lib/tauri';
+import { Message } from '@gns/api-tauri';
 import { X } from 'lucide-react';
 import clsx from 'clsx';
 

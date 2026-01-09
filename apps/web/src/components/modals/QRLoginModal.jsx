@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Shield, X, Loader2, Smartphone, Check, RefreshCw, AlertTriangle } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
-import crypto from '../../crypto';
+import { crypto } from '@gns/api-web';
 
 // QR Login Modal Component
 const QRLoginModal = ({ isOpen, onClose, onSuccess, darkMode }) => {

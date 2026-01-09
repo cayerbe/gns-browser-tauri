@@ -1,5 +1,5 @@
 import React from 'react';
-import { Message } from '../../lib/tauri';
+import { Message } from '@gns/api-tauri';
 import { Reply, Forward, Copy, Info, Star, Trash2, MoreHorizontal } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';

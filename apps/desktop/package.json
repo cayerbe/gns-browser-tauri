@@ -15,6 +15,7 @@
   "dependencies": {
     "@tanstack/react-query": "^5.0.0",
     "@gns/api-core": "workspace:*",
+    "@gns/api-tauri": "workspace:*",
     "@gns/ui": "workspace:*",
     "@tauri-apps/api": "^2.0.0",
     "@tauri-apps/plugin-geolocation": "^2.3.2",

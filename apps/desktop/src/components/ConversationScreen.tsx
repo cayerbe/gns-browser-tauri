@@ -5,7 +5,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Send, Trash2, X } from 'lucide-react';
-import { getMessages, sendMessage, getThread, deleteThread, deleteMessage, addReaction, Message as MessageType, ThreadPreview } from '../lib/tauri';
+import { getMessages, sendMessage, getThread, deleteThread, deleteMessage, addReaction, Message as MessageType, ThreadPreview } from '@gns/api-tauri';
 import { MessageBubble } from './messaging/MessageBubble';
 import { MessageContextMenu } from './messaging/MessageContextMenu';
 import { ReplyPreview } from './messaging/ReplyPreview';

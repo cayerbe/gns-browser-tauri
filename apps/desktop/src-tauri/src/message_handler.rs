@@ -98,6 +98,50 @@ pub fn start_message_handler(
                         }
                     }
                 }
+                IncomingMessage::RequestDecryption { message_ids, conversation_with, requester_pk } => {
+                    tracing::info!("Decryption request from {} for {} messages", &requester_pk[..16.min(requester_pk.len())], message_ids.len());
+
+                    let identity_guard = identity.lock().await;
+                    if let Some(gns_id) = identity_guard.get_identity() {
+                         let _my_pk = gns_id.public_key_hex();
+                         
+                         let relay_guard = relay.lock().await;
+
+                         // Fetch messages from DB scope
+                         let messages_to_sync: Vec<crate::commands::messaging::Message> = {
+                             let db = database.lock().await;
+                             let mut msgs = Vec::new();
+                             for msg_id in &message_ids {
+                                 if let Ok(Some(msg)) = db.get_message(msg_id) {
+                                     msgs.push(msg);
+                                 }
+                             }
+                             msgs
+                         };
+
+                         for msg in messages_to_sync {
+                            let text = msg.payload.get("text").and_then(|t| t.as_str()).unwrap_or("");
+                            if text.is_empty() { continue; }
+
+                            let sync_event = serde_json::json!({
+                                "type": "message_synced",
+                                "to": [requester_pk.clone()], // Send specifically to requester
+                                "messageId": msg.id,
+                                "conversationWith": conversation_with,
+                                "decryptedText": text,
+                                "direction": if msg.is_outgoing { "outgoing" } else { "incoming" },
+                                "timestamp": msg.timestamp,
+                                "fromHandle": msg.from_handle
+                            });
+
+                            if let Err(e) = relay_guard.send_raw(&sync_event.to_string()).await {
+                                tracing::error!("Failed to sync message {}: {}", msg.id, e);
+                            } else {
+                                tracing::debug!("Synced message {} to requester", msg.id);
+                            }
+                         }
+                    }
+                }
                 IncomingMessage::MessageSentFromBrowser { message_id, to_pk, plaintext, timestamp } => {
                     tracing::info!("Syncing browser message: {}", &message_id);
                     

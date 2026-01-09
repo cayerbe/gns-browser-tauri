@@ -378,6 +378,46 @@ impl Database {
 
         Ok(messages)
     }
+
+    /// Get a single message by ID
+    pub fn get_message(&self, message_id: &str) -> Result<Option<Message>, DatabaseError> {
+        let mut stmt = self
+            .conn
+            .prepare(
+                "SELECT id, thread_id, from_public_key, from_handle, payload_type, payload_json, timestamp, is_outgoing, status, reply_to_id, is_starred, forwarded_from_id FROM messages WHERE id = ?",
+            )
+            .map_err(|e| DatabaseError::SqliteError(e.to_string()))?;
+
+        let mut rows = stmt
+            .query_map(params![message_id], |row| {
+                let payload_str: String = row.get(5)?;
+                let payload_json: serde_json::Value =
+                    serde_json::from_str(&payload_str).unwrap_or_default();
+                
+                Ok(Message {
+                    id: row.get(0)?,
+                    thread_id: row.get(1)?,
+                    from_public_key: row.get(2)?,
+                    from_handle: row.get(3)?,
+                    payload_type: row.get(4)?,
+                    payload: payload_json,
+                    timestamp: row.get(6)?,
+                    is_outgoing: row.get(7)?,
+                    status: row.get(8)?,
+                    reply_to_id: row.get(9)?,
+                    is_starred: row.get(10).unwrap_or(false),
+                    forwarded_from_id: row.get(11)?,
+                    reactions: Vec::new(),
+                })
+            })
+            .map_err(|e| DatabaseError::SqliteError(e.to_string()))?;
+
+        if let Some(row) = rows.next() {
+            row.map(Some).map_err(|e| DatabaseError::SqliteError(e.to_string()))
+        } else {
+            Ok(None)
+        }
+    }
     /// Save a sent message
     pub fn save_sent_message(
         &mut self,

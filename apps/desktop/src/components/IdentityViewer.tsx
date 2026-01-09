@@ -5,7 +5,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, MessageCircle, Copy, Check, ExternalLink } from 'lucide-react';
-import { resolveHandle, HandleInfo } from '../lib/tauri';
+import { resolveHandle, HandleInfo } from '@gns/api-tauri';
 import { DixApi } from '../lib/dix';
 import { PostCard } from './dix/PostCard';
 import { useQuery } from '@tanstack/react-query';

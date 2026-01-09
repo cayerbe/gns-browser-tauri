@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { Message } from '../../lib/tauri';
+import { Message } from '@gns/api-tauri';
 import { CheckCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import clsx from 'clsx';

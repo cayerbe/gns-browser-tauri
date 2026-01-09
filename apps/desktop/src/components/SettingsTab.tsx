@@ -26,7 +26,7 @@ import {
   publishIdentity,
   restoreBreadcrumbs,
   AppVersion,
-} from '../lib/tauri';
+} from '@gns/api-tauri';
 import { invoke } from '@tauri-apps/api/core';
 import { useNavigate } from 'react-router-dom';
 

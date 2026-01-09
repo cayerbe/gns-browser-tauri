@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { ProfileFacet } from '../../types/profile';
 import { getLocalFacets } from '../../lib/profile';
-import { getIdentity, deleteIdentity } from '../../lib/tauri';
+import { getIdentity, deleteIdentity } from '@gns/api-tauri';
 import { FacetList } from './FacetList';
 import { ThemeToggle, useTheme } from './ThemeToggle';
 

@@ -17,7 +17,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
-import { getEncryptionKey, signString, getIdentity } from '../lib/tauri';
+import { getEncryptionKey, signString, getIdentity } from '@gns/api-tauri';
 
 // ===========================================
 // TYPES

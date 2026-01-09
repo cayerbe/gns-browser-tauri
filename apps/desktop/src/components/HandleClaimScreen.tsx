@@ -5,7 +5,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Check, X, Sparkles, Loader2 } from 'lucide-react';
-import { checkHandleAvailable, claimHandle, useBreadcrumbStatus } from '../lib/tauri';
+import { checkHandleAvailable, claimHandle, useBreadcrumbStatus } from '@gns/api-tauri';
 import { useDebounce } from '../hooks/useDebounce';
 import { useEffect } from 'react';
 import clsx from 'clsx';

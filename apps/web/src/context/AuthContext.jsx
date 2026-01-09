@@ -1,6 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { getSession, signOut as authSignOut, isAuthenticated } from '../auth';
-import wsService from '../websocket';
+import { getSession, signOut as authSignOut, isAuthenticated, wsService } from '@gns/api-web';
 
 const AuthContext = createContext();
 

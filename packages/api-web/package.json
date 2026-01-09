@@ -1,0 +1,23 @@
+{
+    "name": "@gns/api-web",
+    "version": "1.0.0",
+    "main": "./dist/index.js",
+    "module": "./dist/index.mjs",
+    "types": "./dist/index.d.ts",
+    "scripts": {
+        "build": "tsup src/index.ts --format cjs,esm --dts",
+        "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+        "lint": "eslint src"
+    },
+    "dependencies": {
+        "@gns/api-core": "workspace:*",
+        "base64-arraybuffer": "^1.0.2",
+        "libsodium-wrappers": "^0.7.13",
+        "tweetnacl": "^1.0.3"
+    },
+    "devDependencies": {
+        "tsup": "^8.0.0",
+        "typescript": "^5.0.0"
+    },
+    "peerDependencies": {}
+}

@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { DixPost, DixMedia, DixPostData, DixUserData } from '../types/dix';
-import { isTauriApp } from './tauri';
+import { isTauriApp } from '@gns/api-tauri';
 
 export const DixApi = {
     createPost: async (text: string, media: DixMedia[] = [], replyToId?: string): Promise<DixPost> => {

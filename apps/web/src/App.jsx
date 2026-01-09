@@ -5,10 +5,7 @@ import { webAdapter } from './lib/adapter';
 import { EmailView } from './components/EmailView';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
-import { getProfileByHandle, searchIdentities, SAMPLE_PROFILES } from './gnsApi';
-import { getSession, isAuthenticated } from './auth';
-import wsService from './websocket';
-import crypto from './crypto';
+import { getProfileByHandle, searchIdentities, SAMPLE_PROFILES, getSession, isAuthenticated, wsService, crypto } from '@gns/api-web';
 
 // Context & Hooks
 import { ThemeProvider, useTheme } from './context/ThemeContext';
@@ -273,7 +270,7 @@ const AppContent = () => {
 
     setInboxLoading(true);
     try {
-      const { fetchInbox } = await import('./messaging');
+      const { fetchInbox } = await import('@gns/api-web');
       const result = await fetchInbox({ limit: 50 });
       if (result.success) {
         // Grouping logic 
@@ -344,7 +341,7 @@ const AppContent = () => {
     setSelectedConversation({ publicKey, handle });
 
     try {
-      const { fetchConversation } = await import('./messaging');
+      const { fetchConversation } = await import('@gns/api-web');
       const result = await fetchConversation(publicKey, { limit: 50 });
       if (result.success) {
         const syncedKey = `gns_synced_${publicKey.toLowerCase()}`;
@@ -511,7 +508,7 @@ const AppContent = () => {
     if (!text.trim() || !messageRecipient) return;
     setSendingMessage(true);
     try {
-      const { sendMessage } = await import('./messaging');
+      const { sendMessage } = await import('@gns/api-web');
       const result = await sendMessage(messageRecipient.publicKey, text, messageRecipient.encryptionKey);
       if (result.success) {
         setShowMessageModal(false);
@@ -574,7 +571,7 @@ const AppContent = () => {
     if (!text.trim() || !selectedConversation) return;
 
     try {
-      const { sendMessage } = await import('./messaging');
+      const { sendMessage } = await import('@gns/api-web');
       const result = await sendMessage(selectedConversation.publicKey, text, null);
 
       if (result.success) {

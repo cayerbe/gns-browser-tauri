@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Search, Loader2, User } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
-import { getPublicKey } from '../lib/tauri';
+import { getPublicKey } from '@gns/api-tauri';
 
 interface HandleInfo {
   public_key: string;

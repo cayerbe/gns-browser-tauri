@@ -3,14 +3,14 @@
 // ===========================================
 // Local storage + API sync for profile facets
 
-import { 
-  ProfileFacet, 
-  FacetCollection, 
-  ProfileData, 
+import {
+  ProfileFacet,
+  FacetCollection,
+  ProfileData,
   ProfileLink,
-  createDefaultFacet 
+  createDefaultFacet
 } from '../types/profile';
-import { getPublicKey, signString } from './tauri';
+import { getPublicKey, signString } from '@gns/api-tauri';
 
 const API_BASE = 'https://gns-browser-production.up.railway.app';
 const STORAGE_KEY = 'gns_facets';
@@ -32,16 +32,16 @@ export function getLocalFacets(): ProfileFacet[] {
       saveLocalFacets([defaultFacet]);
       return [defaultFacet];
     }
-    
+
     const facets = JSON.parse(stored) as ProfileFacet[];
-    
+
     // Ensure default facet exists
     if (!facets.some(f => f.type === 'defaultPersonal')) {
       const defaultFacet = createDefaultFacet();
       facets.unshift(defaultFacet);
       saveLocalFacets(facets);
     }
-    
+
     return facets;
   } catch (e) {
     console.error('Error loading facets:', e);
@@ -77,13 +77,13 @@ export function getLocalFacet(id: string): ProfileFacet | null {
 export function saveLocalFacet(facet: ProfileFacet): void {
   const facets = getLocalFacets();
   const index = facets.findIndex(f => f.id === facet.id);
-  
+
   if (index >= 0) {
     facets[index] = { ...facet, updatedAt: new Date().toISOString() };
   } else {
     facets.push(facet);
   }
-  
+
   saveLocalFacets(facets);
 }
 
@@ -93,12 +93,12 @@ export function saveLocalFacet(facet: ProfileFacet): void {
 export function deleteLocalFacet(id: string): boolean {
   const facets = getLocalFacets();
   const facet = facets.find(f => f.id === id);
-  
+
   // Can't delete default or system facets
   if (!facet || facet.type === 'defaultPersonal' || facet.type === 'system') {
     return false;
   }
-  
+
   const filtered = facets.filter(f => f.id !== id);
   saveLocalFacets(filtered);
   return true;
@@ -116,7 +116,7 @@ export function getDefaultFacetId(): string {
  */
 export function setDefaultFacetId(id: string): void {
   localStorage.setItem(DEFAULT_FACET_KEY, id);
-  
+
   // Update isDefault flag on all facets
   const facets = getLocalFacets();
   const updated = facets.map(f => ({
@@ -133,15 +133,15 @@ export function setDefaultFacetId(id: string): void {
 export function getDefaultFacet(): ProfileFacet {
   const facets = getLocalFacets();
   const defaultId = getDefaultFacetId();
-  
+
   // Try by ID first
   let facet = facets.find(f => f.id === defaultId);
   if (facet) return facet;
-  
+
   // Fall back to defaultPersonal type
   facet = facets.find(f => f.type === 'defaultPersonal');
   if (facet) return facet;
-  
+
   // Fall back to first facet
   return facets[0] || createDefaultFacet();
 }
@@ -201,9 +201,9 @@ export function profileDataToFacet(data: ProfileData): ProfileFacet {
 /**
  * Sync profile to network (GNS record)
  */
-export async function syncProfileToNetwork(facet: ProfileFacet): Promise<{ 
-  success: boolean; 
-  message?: string; 
+export async function syncProfileToNetwork(facet: ProfileFacet): Promise<{
+  success: boolean;
+  message?: string;
   error?: string;
 }> {
   try {
@@ -276,7 +276,7 @@ export async function fetchProfileFromNetwork(handle: string): Promise<ProfileDa
 
     const record = data.data.record_json;
     const profileModule = record.modules?.find((m: any) => m.id === 'profile');
-    
+
     if (!profileModule?.config) return null;
 
     const config = profileModule.config;
@@ -318,9 +318,9 @@ export async function fileToBase64(file: File): Promise<string> {
  * Resize image to max dimensions
  */
 export async function resizeImage(
-  dataUrl: string, 
-  maxWidth = 400, 
-  maxHeight = 400, 
+  dataUrl: string,
+  maxWidth = 400,
+  maxHeight = 400,
   quality = 0.8
 ): Promise<string> {
   return new Promise((resolve, reject) => {

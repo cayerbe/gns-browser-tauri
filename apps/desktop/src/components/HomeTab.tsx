@@ -24,7 +24,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { useState } from 'react';
-import { useIdentity, useBreadcrumbStatus, useStellarBalances } from '../lib/tauri';
+import { useIdentity, useBreadcrumbStatus, useStellarBalances } from '@gns/api-tauri';
 
 interface HomeTabProps {
   onViewGSite?: (handle: string) => void;
@@ -62,7 +62,7 @@ export function HomeTab({ onViewGSite }: HomeTabProps) {
 
   // Stellar balances
   const totalClaimable = stellarBalances?.claimable_gns.reduce(
-    (sum, cb) => sum + parseFloat(cb.amount || '0'),
+    (sum: number, cb: any) => sum + parseFloat(cb.amount || '0'), // Using any for simplicity if generic loop fails, or strict types if imports available
     0
   ) || 0;
 

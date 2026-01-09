@@ -5,7 +5,7 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useThreads, deleteThread } from '../../lib/tauri';
+import { useThreads, deleteThread } from '@gns/api-tauri';
 import { EMAIL_GATEWAY_PUBLIC_KEY } from '../../lib/constants';
 import {
     MessageSquare,

@@ -4,7 +4,7 @@
 
 import { NavLink, Outlet } from 'react-router-dom';
 import { Home, MessageCircle, MapPin, Settings, Globe, Mail } from 'lucide-react';
-import { useConnectionStatus } from '../lib/tauri';
+import { useConnectionStatus } from '@gns/api-tauri';
 import clsx from 'clsx';
 
 export interface MainLayoutProps {

@@ -11,7 +11,7 @@ import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { GSiteViewer, GSiteCreator } from './components/gsite';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { hasIdentity, getCurrentHandle, getBreadcrumbStatus } from './lib/tauri';
+import { hasIdentity, getCurrentHandle, getBreadcrumbStatus } from '@gns/api-tauri';
 import { profileToGSite } from './lib/gsite';
 import { GSite } from './types/gsite';
 
