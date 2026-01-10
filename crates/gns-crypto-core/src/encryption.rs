@@ -37,6 +37,16 @@ pub struct EncryptedPayload {
     pub ciphertext: Vec<u8>,
 }
 
+/// Wrapper to handle both legacy object and new string payload formats
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum PayloadWrapper {
+    /// Standard object with nested keys (Legacy/Tauri)
+    Object(EncryptedPayload),
+    /// Flat Base64 string (New/Flutter optimized)
+    String(String),
+}
+
 /// Encrypt data for a recipient
 ///
 /// Uses ephemeral ECDH to establish a shared secret, then encrypts

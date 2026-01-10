@@ -556,24 +556,18 @@ async function createEchoResponse(
   const envelope: EnvelopeData = {
     id: envelopeId,
     version: 1,
-    fromPublicKey: echoEd25519PublicKeyHex.toLowerCase(),  // ✅ Force lowercase
+    fromPublicKey: echoEd25519PublicKeyHex.toLowerCase(),
     fromHandle: ECHO_CONFIG.handle,
-    toPublicKeys: [originalFromPk.toLowerCase()],           // ✅ Force lowercase
+    toPublicKeys: [originalFromPk.toLowerCase()],
     ccPublicKeys: null,
     payloadType: 'gns/text.plain',
-    // ✅ FIXED: Nested encryptedPayload for Tauri/Rust compatibility (HEX encoding)
-    encryptedPayload: {
-      ciphertext: Buffer.from(encrypted.encryptedPayload, 'base64').toString('hex'),
-      ephemeralPublicKey: Buffer.from(encrypted.ephemeralPublicKey, 'base64').toString('hex'),
-      nonce: Buffer.from(encrypted.nonce, 'base64').toString('hex'),
-    },
+    encryptedPayload: encrypted.encryptedPayload,
     payloadSize: payload.length,
     threadId: null,
     replyToId: null,
     forwardOfId: null,
     timestamp: timestamp,
     expiresAt: null,
-    // Keep top-level fields for legacy compatibility (optional, but keep consistent)
     ephemeralPublicKey: encrypted.ephemeralPublicKey,
     recipientKeys: null,
     nonce: encrypted.nonce,

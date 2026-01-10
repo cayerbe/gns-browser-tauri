@@ -31,7 +31,7 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::encryption::{decrypt_from_sender, encrypt_for_recipient, EncryptedPayload};
+use crate::encryption::{decrypt_from_sender, encrypt_for_recipient, EncryptedPayload, PayloadWrapper};
 use crate::errors::CryptoError;
 use crate::identity::GnsIdentity;
 use crate::signing::{canonicalize_for_signing, verify_signature_hex};
@@ -67,8 +67,14 @@ pub struct GnsEnvelope {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub reply_to_id: Option<String>,
 
-    /// Encrypted payload
-    pub encrypted_payload: EncryptedPayload,
+    /// Encrypted payload (Object or String)
+    pub encrypted_payload: PayloadWrapper,
+    /// Ephemeral X25519 public key (optional, for flat string payload)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ephemeral_public_key: Option<String>,
+    /// Nonce (optional, for flat string payload)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub nonce: Option<String>,
 
     /// Ed25519 signature over the envelope header (hex)
     pub signature: String,
@@ -156,7 +162,9 @@ pub fn create_envelope(
         timestamp,
         thread_id: None,
         reply_to_id: None,
-        encrypted_payload,
+        encrypted_payload: PayloadWrapper::Object(encrypted_payload),
+        ephemeral_public_key: None,
+        nonce: None,
         signature: signature_hex,
     })
 }
@@ -229,7 +237,32 @@ pub fn open_envelope(
     )?;
 
     // Decrypt payload
-    let payload = decrypt_from_sender(recipient.x25519_secret(), &envelope.encrypted_payload)?;
+    let encrypted_payload = match &envelope.encrypted_payload {
+        PayloadWrapper::Object(obj) => obj.clone(),
+        PayloadWrapper::String(ciphertext_hex) => {
+            // Reconstruct EncryptedPayload from top-level fields
+            let ephemeral_key_hex = envelope.ephemeral_public_key.as_ref().ok_or_else(|| {
+                CryptoError::DecryptionFailed(
+                    "Missing ephemeral_public_key for string payload".to_string(),
+                )
+            })?;
+            let nonce_hex = envelope.nonce.as_ref().ok_or_else(|| {
+                CryptoError::DecryptionFailed("Missing nonce for string payload".to_string())
+            })?;
+
+            // Decode Hex strings to Vec<u8> since EncryptedPayload expects raw bytes (via hex_bytes module)
+            // Wait, EncryptedPayload struct uses #[serde(with="hex_bytes")] so it stores Vec<u8>.
+            // So we need to decode the hex strings here.
+            
+            EncryptedPayload {
+                ciphertext: hex::decode(ciphertext_hex).map_err(|e| CryptoError::DecryptionFailed(e.to_string()))?,
+                ephemeral_public_key: hex::decode(ephemeral_key_hex).map_err(|e| CryptoError::DecryptionFailed(e.to_string()))?,
+                nonce: hex::decode(nonce_hex).map_err(|e| CryptoError::DecryptionFailed(e.to_string()))?,
+            }
+        }
+    };
+
+    let payload = decrypt_from_sender(recipient.x25519_secret(), &encrypted_payload)?;
 
     Ok(OpenedEnvelope {
         from_public_key: envelope.from_public_key.clone(),
