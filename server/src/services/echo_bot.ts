@@ -579,8 +579,8 @@ async function createEchoResponse(
 
   // Hash with SHA256 (CRITICAL: Must match client verification)
   // Client verifies: algorithm.verify(SHA256(canonicalJSON), signature)
-  console.log(`\n🔍 CANONICAL STRING DEBUG:`);
-  console.log(dataToSign);
+  console.log(`\n🔍 CANONICAL STRING (RAW):`);
+  console.log(JSON.stringify(dataToSign));
 
   const canonicalHash = crypto.createHash('sha256')
     .update(dataToSign, 'utf8')
