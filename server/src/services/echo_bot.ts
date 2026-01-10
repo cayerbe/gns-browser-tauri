@@ -227,9 +227,61 @@ export function getHandle(): { handle: string; publicKey: string; encryptionKey:
 /**
  * Register @echo handle in database
  */
+/**
+ * Register @echo handle in database
+ * ✅ NOW PERSISTS to DB to ensure X25519 key is up to date!
+ */
 export async function registerHandle(): Promise<boolean> {
-  console.log(`📝 @${ECHO_CONFIG.handle} handle available (in-memory, pk: ${echoEd25519PublicKeyHex.substring(0, 16)}...)`);
-  return true;
+  if (!echoEd25519PublicKeyHex || !echoX25519PublicKeyHex) {
+    console.warn('⚠️ Cannot register @echo handle: Keys not initialized');
+    return false;
+  }
+
+  console.log(`📝 Registering @${ECHO_CONFIG.handle} in database...`);
+
+  try {
+    const timestamp = Date.now();
+
+    // Create record payload
+    const recordPayload = {
+      version: 1,
+      identity: echoEd25519PublicKeyHex,
+      handle: ECHO_CONFIG.handle,
+      encryption_key: echoX25519PublicKeyHex, // The CRITICAL part
+      modules: [],
+      endpoints: [],
+      epoch_roots: [],
+      trust_score: 100,
+      breadcrumb_count: 1000,
+      created_at: new Date(timestamp).toISOString(),
+      updated_at: new Date(timestamp).toISOString(),
+    };
+
+    // Canonical string for signing
+    const canonical = JSON.stringify(recordPayload); // Simple for now, or use proper canonicalizer
+
+    // Sign with Ed25519 identity key
+    const signature = nacl.sign.detached(
+      Buffer.from(canonical, 'utf8'),
+      echoKeypair!.secretKey
+    );
+
+    // Upsert into DB
+    await db.upsertRecord(
+      echoEd25519PublicKeyHex,
+      recordPayload,
+      bytesToHex(signature)
+    );
+
+    console.log(`   ✅ @${ECHO_CONFIG.handle} identity updated in DB`);
+    console.log(`      PK: ${echoEd25519PublicKeyHex.substring(0, 16)}...`);
+    console.log(`      Enc: ${echoX25519PublicKeyHex.substring(0, 16)}...`);
+
+    return true;
+  } catch (error) {
+    console.error('   ❌ Failed to register @echo identity:', error);
+    return false;
+  }
 }
 
 /**
