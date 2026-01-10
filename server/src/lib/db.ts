@@ -669,6 +669,7 @@ export async function createEnvelopeMessage(
   const { data, error } = await getSupabase()
     .from('messages')
     .insert({
+      id: envelope.id,
       from_pk: fromPk.toLowerCase(),
       to_pk: toPk.toLowerCase(),
       payload: payloadString,  // Always a string (base64 ciphertext)
