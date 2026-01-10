@@ -588,6 +588,22 @@ async function createEchoResponse(
     echoKeypair!.secretKey
   );
 
+  // --- DEBUGGING SIGNATURE ---
+  const pubKeyBytes = echoKeypair!.publicKey;
+  const selfVerify = nacl.sign.detached.verify(canonicalHash, signature, pubKeyBytes);
+  console.log(`\n🕵️‍♂️ SIGNATURE DEBUG:`);
+  console.log(`   Canonical Hash (Hex): ${canonicalHash.toString('hex')}`);
+  console.log(`   Public Key (Hex): ${bytesToHex(pubKeyBytes)}`);
+  console.log(`   Signature Length: ${signature.length} bytes`);
+  console.log(`   SELF-VERIFY RESULT: ${selfVerify ? '✅ VALID' : '❌ INVALID'}`);
+
+  if (!selfVerify) {
+    console.error(`   ⚠️ CRITICAL: Server generated a signature it considers INVALID!`);
+    // Dump key info (carefully)
+    console.error(`   Secret Key Length: ${echoKeypair!.secretKey.length}`);
+  }
+  // ---------------------------
+
   console.log(`   ✅ Response envelope created: ${envelopeId.substring(0, 8)}...`);
   console.log(`   ✅ Encrypted with recipient's X25519 key (no conversion)`);
 
