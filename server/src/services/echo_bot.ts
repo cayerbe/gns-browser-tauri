@@ -479,6 +479,11 @@ function encryptForRecipient(
   // 3. Derive encryption key with HKDF (including public keys in info!)
   const ephemeralPubBuffer = Buffer.from(ephemeral.publicKey);
   const recipientPubBuffer = Buffer.from(recipientX25519PublicKey);
+
+  console.log(`   🔐 HKDF Info components:`);
+  console.log(`      Ephemeral Pub (hex): ${ephemeralPubBuffer.toString('hex')}`);
+  console.log(`      Recipient Pub (hex): ${recipientPubBuffer.toString('hex')}`);
+
   const encryptionKey = deriveKey(sharedSecret, ephemeralPubBuffer, recipientPubBuffer);
 
   // 4. Generate random nonce
