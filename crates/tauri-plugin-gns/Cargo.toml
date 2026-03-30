@@ -73,7 +73,7 @@ zeroize = { version = "1.7", features = ["derive"] }
 argon2 = "0.5"
 
 # H3 Geospatial Indexing (for location privacy)
-h3o = "0.6"
+h3o = "0.9"
 
 # Optional dependencies (feature-gated)
 # Trajectory feature: geographic utilities
