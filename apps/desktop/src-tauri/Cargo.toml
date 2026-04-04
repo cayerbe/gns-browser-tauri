@@ -65,7 +65,7 @@ open = "5.0"
 dirs = "5.0"
 regex = "1.10"
 sha2 = "0.10"
-stellar-xdr = { version = "21.1", features = ["std", "curr"] }
+stellar-xdr = { version = "25.0", features = ["std", "curr"] }
 
 # Logging
 tracing = "0.1"
