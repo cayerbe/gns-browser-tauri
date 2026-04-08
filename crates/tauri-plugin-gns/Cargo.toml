@@ -85,7 +85,7 @@ keyring = { version = "3", optional = true }
 # Payments feature: Stellar blockchain integration
 # Note: We use stellar-strkey for address encoding (compatible with ed25519-dalek)
 # and implement transaction signing ourselves using existing ed25519-dalek
-stellar-strkey = { version = "0.0.8", optional = true }
+stellar-strkey = { version = "0.0.16", optional = true }
 
 # Platform-specific dependencies
 [target.'cfg(target_os = "ios")'.dependencies]
